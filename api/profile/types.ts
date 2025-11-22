@@ -52,12 +52,18 @@ const pantsSizeValidator = z.string()
         { message: "Pants size must be numeric (e.g., '32') or combined (e.g., '32x34')" }
     );
 
-export const ProfileCompletionSchema = z.object({
+/**
+ * Profile form schema - validates form inputs (strings, lowercase gender, flat structure)
+ * Used for React Hook Form validation
+ * 
+ * Note: Form uses flattened structure (bust_cm, hips_cm at top level)
+ * Backend uses nested structure (measurements: { bust_cm, hips_cm })
+ */
+export const ProfileFormSchema = z.object({
     gender: z.enum(['male', 'female']).optional(),
 
-    // Body measurements - validated as floats in backend (0-300 for height, 0-200 for waist)
-    // Form uses "height" but backend expects "height_cm" - conversion happens in buildProfilePayload
-    height: z.string()
+    // Body measurements - form inputs are strings
+    height_cm: z.string()
         .optional()
         .refine(
             (val) => {
@@ -65,8 +71,8 @@ export const ProfileCompletionSchema = z.object({
                 const num = Number(val.trim());
                 return !Number.isNaN(num) && num >= 0 && num <= 300;
             },
-        { message: 'Height must be a valid number between 0 and 300 cm' }
-    ),
+            { message: 'Height must be a valid number between 0 and 300 cm' }
+        ),
 
     waist_cm: z.string()
         .optional()
@@ -76,28 +82,50 @@ export const ProfileCompletionSchema = z.object({
                 const num = Number(val.trim());
                 return !Number.isNaN(num) && num >= 0 && num <= 200;
             },
-        { message: 'Waist must be a valid number between 0 and 200 cm' }
-    ),
+            { message: 'Waist must be a valid number between 0 and 200 cm' }
+        ),
 
-    // Measurements: dict[str, float] - all values must be positive numbers
-    measurements: z.record(z.string(), z.string())
+    // Measurements: flattened for form (bust_cm, hips_cm, chest_cm, shoulder_width_cm at top level)
+    // These will be nested into measurements object in backend schema
+    bust_cm: z.string()
         .optional()
         .refine(
             (val) => {
-                if (!val) return true;
-                for (const value of Object.values(val)) {
-                    if (typeof value === 'string') {
-                        const num = Number(value);
-                        if (Number.isNaN(num) || num < 0) {
-                            return false;
-                        }
-                    } else if (typeof value !== 'number' || value < 0) {
-                        return false;
-                    }
-                }
-                return true;
+                if (!val || !val.trim()) return true;
+                const num = Number(val.trim());
+                return !Number.isNaN(num) && num > 0;
             },
-            { message: 'All measurements must be positive numbers' }
+            { message: 'Bust must be a positive number' }
+        ),
+    hips_cm: z.string()
+        .optional()
+        .refine(
+            (val) => {
+                if (!val || !val.trim()) return true;
+                const num = Number(val.trim());
+                return !Number.isNaN(num) && num > 0;
+            },
+            { message: 'Hips must be a positive number' }
+        ),
+    chest_cm: z.string()
+        .optional()
+        .refine(
+            (val) => {
+                if (!val || !val.trim()) return true;
+                const num = Number(val.trim());
+                return !Number.isNaN(num) && num > 0;
+            },
+            { message: 'Chest must be a positive number' }
+        ),
+    shoulder_width_cm: z.string()
+        .optional()
+        .refine(
+            (val) => {
+                if (!val || !val.trim()) return true;
+                const num = Number(val.trim());
+                return !Number.isNaN(num) && num > 0;
+            },
+            { message: 'Shoulder width must be a positive number' }
         ),
 
     // Clothing sizes - all optional with format validation
@@ -156,6 +184,80 @@ export const ProfileCompletionSchema = z.object({
         }
     );
 
+/**
+ * Profile completion request schema - matches backend payload format exactly
+ * Uses numbers, uppercase gender, nested measurements structure
+ */
+export const ProfileCompletionRequestSchema = z.object({
+    gender: z.enum(['MALE', 'FEMALE']).optional(),
+
+    // Body measurements - backend expects numbers
+    height_cm: z.number()
+        .min(0, 'Height must be 0 or greater')
+        .max(300, 'Height must be 300 cm or less')
+        .optional(),
+
+    waist_cm: z.number()
+        .min(0, 'Waist must be 0 or greater')
+        .max(200, 'Waist must be 200 cm or less')
+        .optional(),
+
+    // Measurements: dict[str, float] - backend expects numbers
+    measurements: z.record(z.string(), z.number().positive()).optional(),
+
+    // Clothing sizes - backend accepts strings
+    shoe_size_value: shoeSizeValidator,
+    shoe_size_standard: z.enum(sizeStandardOptions).optional(),
+
+    shirt_size_value: clothingSizeValidator,
+    shirt_size_standard: z.enum(sizeStandardOptions).optional(),
+
+    jacket_size_value: clothingSizeValidator,
+    jacket_size_standard: z.enum(sizeStandardOptions).optional(),
+
+    pants_size_value: pantsSizeValidator,
+    pants_size_standard: z.enum(sizeStandardOptions).optional(),
+
+    top_size_value: clothingSizeValidator,
+    top_size_standard: z.enum(sizeStandardOptions).optional(),
+
+    dress_size_value: clothingSizeValidator,
+    dress_size_standard: z.enum(sizeStandardOptions).optional(),
+
+    // Images
+    profile_picture_url: z.string()
+        .max(500, 'Profile picture URL must be 500 characters or less')
+        .optional(),
+    full_body_image_url: z.string()
+        .max(500, 'Full body image URL must be 500 characters or less')
+        .optional(),
+})
+    .refine(
+        (data) => {
+            const sizePairs = [
+                ['shoe_size_value', 'shoe_size_standard'],
+                ['shirt_size_value', 'shirt_size_standard'],
+                ['jacket_size_value', 'jacket_size_standard'],
+                ['pants_size_value', 'pants_size_standard'],
+                ['top_size_value', 'top_size_standard'],
+                ['dress_size_value', 'dress_size_standard'],
+            ] as const;
+
+            for (const [valueField, standardField] of sizePairs) {
+                const value = data[valueField];
+                const standard = data[standardField];
+                if (standard && !value) {
+                    return false;
+                }
+            }
+            return true;
+        },
+        {
+            message: 'Size standard cannot be provided without a corresponding size value',
+            path: ['size_standard'],
+        }
+    );
+
 // Response schema - backend returns numbers for measurements, not strings
 export const ProfileCompletionResponseSchema = z.object({
     id: z.string(),
@@ -182,6 +284,15 @@ export const ProfileCompletionResponseSchema = z.object({
     full_body_image_url: z.string().optional(),
 });
 
-export type ProfileCompletionRequest = z.infer<typeof ProfileCompletionSchema>;
+// Form values type - inferred from form schema (strings, lowercase gender, flat structure)
+export type ProfileFormValues = z.infer<typeof ProfileFormSchema>;
+
+// Backend request type - inferred from request schema (numbers, uppercase gender, nested measurements)
+export type ProfileCompletionRequest = z.infer<typeof ProfileCompletionRequestSchema>;
+
+// Backend response type
 export type ProfileCompletionResponse = z.infer<typeof ProfileCompletionResponseSchema>;
+
+// Legacy export for backward compatibility
+export const ProfileCompletionSchema = ProfileCompletionRequestSchema;
 

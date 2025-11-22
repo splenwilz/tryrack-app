@@ -49,9 +49,9 @@ export function MeasurementInput({
                     />
                 )}
             />
-            {errors[name]?.message && (
+            {errors?.[name]?.message && (
                 <ThemedText style={[styles.errorText, { color: '#FF3B30' }]}>
-                    {errors[name]?.message}
+                    {errors?.[name]?.message}
                 </ThemedText>
             )}
         </View>

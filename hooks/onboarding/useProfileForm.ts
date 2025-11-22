@@ -25,7 +25,7 @@ export function useProfileForm(defaultValues?: Partial<ProfileFormValues>): UseF
         resolver: formResolver,
         defaultValues: {
             gender: defaultValues?.gender || 'female',
-            height: defaultValues?.height || '',
+            height_cm: defaultValues?.height_cm || '',
             waist_cm: defaultValues?.waist_cm || '',
             bust_cm: defaultValues?.bust_cm || '',
             hips_cm: defaultValues?.hips_cm || '',

@@ -124,6 +124,8 @@ export default function EmailVerificationScreen() {
             const storedPassword = await getPendingPassword();
             
             if (!storedPassword || !emailParam) {
+                // Clear password before navigating away
+                await clearPendingPassword();
                 Alert.alert(
                     'Unable to Resend',
                     'Please return to the sign in screen and sign in again to resend the verification code.',
@@ -165,6 +167,8 @@ export default function EmailVerificationScreen() {
             router.replace('/(tabs)');
             }
         } catch (error) {
+            // Clear password on error to prevent credential exposure
+            await clearPendingPassword();
             const message =
                 error instanceof ApiError
                     ? error.message
@@ -178,8 +182,10 @@ export default function EmailVerificationScreen() {
 
     /**
      * Navigate back to sign up screen
+     * Clears pending password before navigation to prevent credential exposure
      */
-    const goBackToSignUp = () => {
+    const goBackToSignUp = async () => {
+        await clearPendingPassword();
         router.back();
     };
 
@@ -201,6 +207,7 @@ export default function EmailVerificationScreen() {
             });
 
             if (!response.user.email_verified) {
+                // Don't clear password here - user might want to resend
                 setError('root', {
                     type: 'manual',
                     message: 'Verification incomplete. Please re-enter the code or resend.',
@@ -209,6 +216,8 @@ export default function EmailVerificationScreen() {
             }
 
             if (!response.access_token || !response.refresh_token) {
+                // Clear password on authentication failure
+                await clearPendingPassword();
                 setError('root', {
                     type: 'manual',
                     message: 'Missing authentication tokens. Please sign in again.',
@@ -223,6 +232,8 @@ export default function EmailVerificationScreen() {
             Alert.alert('Email verified successfully');
             router.replace('/(tabs)');
         } catch (error) {
+            // Clear password on verification error to prevent credential exposure
+            await clearPendingPassword();
             const message =
                 error instanceof ApiError
                     ? error.message
@@ -305,7 +316,7 @@ export default function EmailVerificationScreen() {
 
                     {/* Back to Sign Up */}
                     <View style={styles.footer}>
-                        <TouchableOpacity onPress={goBackToSignUp}>
+                        <TouchableOpacity onPress={() => goBackToSignUp()}>
                             <Text style={styles.footerLink}>Back to Sign Up</Text>
                         </TouchableOpacity>
                     </View>

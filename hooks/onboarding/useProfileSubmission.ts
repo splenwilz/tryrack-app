@@ -3,6 +3,7 @@ import { Alert } from 'react-native';
 import { router } from 'expo-router';
 import { useUploadImage } from '@/api/upload/queries';
 import { useCreateProfile, useUpdateProfile, useGetProfile } from '@/api/profile/queries';
+import { queryKeys } from '@/api/utils/query-keys';
 import { buildProfilePayload } from '@/components/onboarding/utils';
 import type { ProfileFormValues } from '@/components/onboarding/types';
 import type { UseFormSetError } from 'react-hook-form';
@@ -20,10 +21,10 @@ import type { UseFormSetError } from 'react-hook-form';
 export function useProfileSubmission(setError: UseFormSetError<ProfileFormValues>) {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const { mutateAsync: uploadImageMutation, isPending: isUploadingImage } = useUploadImage();
-    const { mutateAsync: createProfileMutation, isPending: isCreatingProfile } = useCreateProfile();
-    const { mutateAsync: updateProfileMutation, isPending: isUpdatingProfile } = useUpdateProfile();
+    const { mutateAsync: createProfileMutation, isPending: isCreatingProfile, queryClient: createQueryClient } = useCreateProfile();
+    const { mutateAsync: updateProfileMutation, isPending: isUpdatingProfile, queryClient: updateQueryClient } = useUpdateProfile();
     const { data: existingProfile } = useGetProfile();
-    
+
     // Check if profile already exists
     const hasExistingProfile = !!existingProfile;
 
@@ -84,8 +85,9 @@ export function useProfileSubmission(setError: UseFormSetError<ProfileFormValues
             // Submit profile to backend with uploaded image URLs
             console.log('[Profile] Submitting profile payload...');
             const profileStartTime = Date.now();
-            
+
             // Use update if profile exists, otherwise create
+            const queryClient = hasExistingProfile ? updateQueryClient : createQueryClient;
             if (hasExistingProfile) {
                 await updateProfileMutation(profilePayload);
                 console.log('[Profile] Profile updated successfully');
@@ -93,7 +95,10 @@ export function useProfileSubmission(setError: UseFormSetError<ProfileFormValues
                 await createProfileMutation(profilePayload);
                 console.log('[Profile] Profile created successfully');
             }
-            
+
+            // Invalidate profile query cache to ensure fresh data is fetched
+            queryClient.invalidateQueries({ queryKey: queryKeys.profile.current() });
+
             const profileDuration = Date.now() - profileStartTime;
             const totalDuration = Date.now() - submissionStartTime;
             console.log(`[Profile] Profile submission completed in ${profileDuration}ms`);

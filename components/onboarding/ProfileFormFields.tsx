@@ -61,7 +61,7 @@ export function ProfileFormFields({
                 <View style={styles.inputRow}>
                     <MeasurementInput
                         control={control}
-                        name="height"
+                        name="height_cm"
                         label="Height (cm)"
                         placeholder="e.g., 165"
                         errors={errors}

@@ -1,5 +1,6 @@
 import type { ProfileFormValues } from './types';
-import type { ProfileCompletionRequest, ProfileCompletionResponse } from '@/api/profile/types';
+import type { ProfileCompletionRequest, ProfileCompletionResponse, SizeStandard } from '@/api/profile/types';
+import { ProfileCompletionRequestSchema } from '@/api/profile/types';
 
 /**
  * Normalizes clothing size value (uppercase for letter sizes)
@@ -56,16 +57,25 @@ export function buildProfilePayload(
         addMeasurement('shoulder_width_cm', data.shoulder_width_cm);
     }
 
-    // Convert height_cm and waist_cm from strings to floats
-    const heightCm = data.height?.trim() ? Number(data.height.trim()) : undefined;
-    const waistCm = data.waist_cm?.trim() ? Number(data.waist_cm.trim()) : undefined;
+    // Helper to parse string to number, preserving 0 values
+    // Returns undefined only if value is empty or NaN
+    const parseNumber = (value?: string): number | undefined => {
+        if (!value?.trim()) return undefined;
+        const num = Number(value.trim());
+        return Number.isNaN(num) ? undefined : num;
+    };
+
+    // Convert height_cm and waist_cm from strings to numbers
+    // Note: parseNumber preserves 0 values (schema allows 0-300 for height, 0-200 for waist)
+    const heightCm = parseNumber(data.height_cm);
+    const waistCm = parseNumber(data.waist_cm);
 
     // Build profile payload with uploaded image URLs
-    // Convert gender to uppercase (backend expects 'MALE' or 'FEMALE')
-    const profilePayload: Record<string, unknown> = {
-        gender: data.gender.toUpperCase() as 'MALE' | 'FEMALE',
-        height_cm: heightCm && !Number.isNaN(heightCm) ? heightCm : undefined,
-        waist_cm: waistCm && !Number.isNaN(waistCm) ? waistCm : undefined,
+    // Type matches ProfileCompletionRequestSchema (numbers, uppercase gender, nested measurements)
+    const profilePayload: Partial<ProfileCompletionRequest> = {
+        ...(data.gender && { gender: data.gender.toUpperCase() as 'MALE' | 'FEMALE' }),
+        height_cm: heightCm,
+        waist_cm: waistCm,
         measurements: Object.keys(measurements).length > 0 ? measurements : undefined,
         profile_picture_url: profilePictureUrl,
         full_body_image_url: fullBodyImageUrl,
@@ -75,19 +85,20 @@ export function buildProfilePayload(
     const addSizeField = (
         valueField: keyof ProfileFormValues,
         standardField: keyof ProfileFormValues,
-        payloadKey: string
+        payloadKey: keyof ProfileCompletionRequest
     ) => {
         const value = data[valueField] as string | undefined;
         if (value?.trim()) {
             // Normalize clothing sizes (uppercase for letter sizes)
             if (payloadKey !== 'shoe_size_value' && payloadKey !== 'pants_size_value') {
-                profilePayload[payloadKey] = normalizeClothingSize(value);
+                (profilePayload[payloadKey] as string) = normalizeClothingSize(value);
             } else {
-                profilePayload[payloadKey] = value.trim();
+                (profilePayload[payloadKey] as string) = value.trim();
             }
             // Default to US if standard not provided (matches backend behavior)
             const standard = (data[standardField] as string | undefined) || 'US';
-            profilePayload[`${payloadKey.replace('_value', '')}_standard`] = standard;
+            const standardKey = `${payloadKey.toString().replace('_value', '')}_standard` as keyof ProfileCompletionRequest;
+            (profilePayload[standardKey] as SizeStandard) = standard as SizeStandard;
         }
     };
 
@@ -98,7 +109,10 @@ export function buildProfilePayload(
     addSizeField('top_size_value', 'top_size_standard', 'top_size_value');
     addSizeField('dress_size_value', 'dress_size_standard', 'dress_size_value');
 
-    return profilePayload as ProfileCompletionRequest;
+    // Validate payload against schema to ensure type safety
+    // This ensures the payload matches ProfileCompletionRequest exactly
+    const validatedPayload = ProfileCompletionRequestSchema.parse(profilePayload);
+    return validatedPayload;
 }
 
 /**
@@ -128,7 +142,7 @@ export function mapProfileToFormValues(profile: ProfileCompletionResponse): Part
 
     // Convert height_cm from number to string
     if (profile.height_cm !== undefined && profile.height_cm !== null) {
-        formValues.height = String(profile.height_cm);
+        formValues.height_cm = String(profile.height_cm);
     }
 
     // Convert waist_cm from number to string
