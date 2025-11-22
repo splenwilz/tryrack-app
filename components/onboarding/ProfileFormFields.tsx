@@ -1,6 +1,6 @@
 import { View, StyleSheet } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
-import { Controller, useWatch, type Control } from 'react-hook-form';
+import { type FieldErrors, useWatch, type Control } from 'react-hook-form';
 import { GenderSelector } from './GenderSelector';
 import { MeasurementInput } from './MeasurementInput';
 import { SizeInput } from './SizeInput';
@@ -8,7 +8,7 @@ import type { ProfileFormValues } from './types';
 
 type ProfileFormFieldsProps = {
     control: Control<ProfileFormValues>;
-    errors: any;
+    errors: FieldErrors<ProfileFormValues>;
     textColor: string;
     iconColor: string;
     tintColor: string;

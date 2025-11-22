@@ -7,11 +7,14 @@ import {
     TouchableOpacity,
     Image,
     Switch,
+    Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ThemedText } from '@/components/themed-text';
 import { Colors } from '@/constants/theme';
+import { router } from 'expo-router';
+import { useSignout } from '@/api/auth/signout/queries';
 
 interface User {
     id: number;
@@ -514,7 +517,11 @@ const PreferencesSection: FC<{ preferences: Preferences; colors: ColorScheme; ac
     </View>
 );
 
-const SettingsSection: FC<{ colors: ColorScheme }> = ({ colors }) => (
+const SettingsSection: FC<{ colors: ColorScheme; onSignOut: () => void; isSigningOut: boolean }> = ({
+    colors,
+    onSignOut,
+    isSigningOut
+}) => (
     <View style={[styles.section, { backgroundColor: colors.background }]}>
         <Text style={[styles.sectionTitle, { color: colors.text }]}>Settings</Text>
 
@@ -542,14 +549,53 @@ const SettingsSection: FC<{ colors: ColorScheme }> = ({ colors }) => (
             <IconSymbol name="chevron.right" size={16} color={colors.tabIconDefault} />
         </TouchableOpacity>
 
-        <TouchableOpacity style={[styles.logoutButton, { backgroundColor: '#FF3B30' }]} onPress={noop}>
+        <TouchableOpacity
+            style={[
+                styles.logoutButton,
+                { backgroundColor: '#FF3B30' },
+                isSigningOut && styles.logoutButtonDisabled
+            ]}
+            onPress={onSignOut}
+            disabled={isSigningOut}
+        >
             <IconSymbol name="rectangle.portrait.and.arrow.right" size={20} color="white" />
-            <Text style={styles.logoutText}>Sign Out</Text>
+            <Text style={styles.logoutText}>{isSigningOut ? 'Signing Out...' : 'Sign Out'}</Text>
         </TouchableOpacity>
     </View>
 );
 
 export default function ProfileScreen() {
+    const { mutateAsync: signoutMutation, isPending: isSigningOut } = useSignout();
+
+    const handleSignOut = async () => {
+        Alert.alert(
+            'Sign Out',
+            'Are you sure you want to sign out?',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Sign Out',
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            await signoutMutation();
+                            // Navigate to sign in screen after successful logout
+                            router.replace('/auth/signin');
+                        } catch (error) {
+                            Alert.alert(
+                                'Error',
+                                error instanceof Error
+                                    ? error.message
+                                    : 'Failed to sign out. Please try again.',
+                                [{ text: 'OK' }]
+                            );
+                        }
+                    },
+                },
+            ]
+        );
+    };
+
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: themeColors.background }]}>
             <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
@@ -560,7 +606,11 @@ export default function ProfileScreen() {
                 <OutfitHistorySection colors={themeColors} />
                 <AchievementsSection colors={themeColors} />
                 <PreferencesSection preferences={MOCK_PREFERENCES} colors={themeColors} accountMode="individual" />
-                <SettingsSection colors={themeColors} />
+                <SettingsSection
+                    colors={themeColors}
+                    onSignOut={handleSignOut}
+                    isSigningOut={isSigningOut}
+                />
             </ScrollView>
         </SafeAreaView>
     );
@@ -888,6 +938,9 @@ const styles = StyleSheet.create({
         padding: 16,
         borderRadius: 8,
         marginTop: 8,
+    },
+    logoutButtonDisabled: {
+        opacity: 0.6,
     },
     logoutText: {
         color: 'white',

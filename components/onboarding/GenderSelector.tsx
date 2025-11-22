@@ -1,11 +1,11 @@
 import { View, TouchableOpacity, StyleSheet } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
-import { Controller, type Control } from 'react-hook-form';
+import { Controller, type FieldErrors, type Control } from 'react-hook-form';
 import type { ProfileFormValues } from './types';
 
 type GenderSelectorProps = {
     control: Control<ProfileFormValues>;
-    errors: any;
+    errors: FieldErrors<ProfileFormValues>;
     tintColor: string;
     iconColor: string;
 };

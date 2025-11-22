@@ -65,8 +65,8 @@ export const ProfileCompletionSchema = z.object({
                 const num = Number(val.trim());
                 return !Number.isNaN(num) && num >= 0 && num <= 300;
             },
-            { message: 'Height must be a valid number between 0 and 300 cm' }
-        ),
+        { message: 'Height must be a valid number between 0 and 300 cm' }
+    ),
 
     waist_cm: z.string()
         .optional()
@@ -76,8 +76,8 @@ export const ProfileCompletionSchema = z.object({
                 const num = Number(val.trim());
                 return !Number.isNaN(num) && num >= 0 && num <= 200;
             },
-            { message: 'Waist must be a valid number between 0 and 200 cm' }
-        ),
+        { message: 'Waist must be a valid number between 0 and 200 cm' }
+    ),
 
     // Measurements: dict[str, float] - all values must be positive numbers
     measurements: z.record(z.string(), z.string())
@@ -156,11 +156,30 @@ export const ProfileCompletionSchema = z.object({
         }
     );
 
+// Response schema - backend returns numbers for measurements, not strings
 export const ProfileCompletionResponseSchema = z.object({
     id: z.string(),
     userId: z.string(),
     createdAt: z.string(),
     updatedAt: z.string(),
+    gender: z.enum(['male', 'female', 'MALE', 'FEMALE']).optional(),
+    height_cm: z.number().optional(),
+    waist_cm: z.number().optional(),
+    measurements: z.record(z.string(), z.number()).optional(),
+    shoe_size_value: z.string().optional(),
+    shoe_size_standard: z.enum(sizeStandardOptions).optional(),
+    shirt_size_value: z.string().optional(),
+    shirt_size_standard: z.enum(sizeStandardOptions).optional(),
+    jacket_size_value: z.string().optional(),
+    jacket_size_standard: z.enum(sizeStandardOptions).optional(),
+    pants_size_value: z.string().optional(),
+    pants_size_standard: z.enum(sizeStandardOptions).optional(),
+    top_size_value: z.string().optional(),
+    top_size_standard: z.enum(sizeStandardOptions).optional(),
+    dress_size_value: z.string().optional(),
+    dress_size_standard: z.enum(sizeStandardOptions).optional(),
+    profile_picture_url: z.string().optional(),
+    full_body_image_url: z.string().optional(),
 });
 
 export type ProfileCompletionRequest = z.infer<typeof ProfileCompletionSchema>;

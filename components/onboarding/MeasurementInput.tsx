@@ -1,6 +1,6 @@
 import { View, TextInput, StyleSheet } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
-import { Controller, type Control } from 'react-hook-form';
+import { Controller, type FieldErrors, type Control } from 'react-hook-form';
 import type { ProfileFormValues } from './types';
 
 type MeasurementInputProps = {
@@ -8,7 +8,7 @@ type MeasurementInputProps = {
     name: keyof ProfileFormValues;
     label: string;
     placeholder: string;
-    errors: any;
+    errors: FieldErrors<ProfileFormValues>;
     textColor: string;
     iconColor: string;
 };
@@ -34,12 +34,12 @@ export function MeasurementInput({
             <ThemedText style={styles.label}>{label}</ThemedText>
             <Controller
                 control={control}
-                name={name as any}
+                name={name}
                 render={({ field: { onChange, value } }) => (
                     <TextInput
                         style={[
                             styles.input,
-                            { color: textColor, borderColor: errors[name] ? '#FF3B30' : iconColor },
+                            { color: textColor, borderColor: errors?.[name] ? '#FF3B30' : iconColor },
                         ]}
                         placeholder={placeholder}
                         placeholderTextColor={iconColor}

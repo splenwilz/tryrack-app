@@ -15,7 +15,7 @@ import { useSignup } from '@/api/auth/signup/queries';
 import { useSignin } from '@/api/auth/signin/queries';
 import type { AuthResponse } from '@/api/auth/types';
 import type { EmailVerificationResponse } from '@/api/auth/signin/types';
-import { saveTokens, saveUser } from '@/api/client';
+import { saveTokens, saveUser, savePendingPassword, clearQueryCache } from '@/api/client';
 import type { OAuthProvider } from '@/api/auth/oauth/types';
 import { useSocialOAuth } from '@/hooks/use-social-oauth';
 import { useThemeColor } from '@/hooks/use-theme-color';
@@ -95,6 +95,8 @@ export default function SignUpScreen() {
             });
 
             if (isVerificationResponse(loginResponse) && loginResponse.requires_verification) {
+                // Store password securely for resending verification code
+                await savePendingPassword(data.password);
                 router.push({
                     pathname: '/auth/verify-email',
                     params: {
@@ -106,6 +108,8 @@ export default function SignUpScreen() {
             }
 
             const authResponse = loginResponse as AuthResponse;
+            // Clear cache before saving new user data to prevent stale data
+            clearQueryCache();
             await saveTokens(authResponse.access_token, authResponse.refresh_token);
             await saveUser(authResponse.user);
             router.replace('/(tabs)');

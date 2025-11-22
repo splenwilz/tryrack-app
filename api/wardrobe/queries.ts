@@ -27,7 +27,14 @@ export const useCreateWardrobeItem = createMutationHook<
 export function useWardrobeItems(options?: GetWardrobeItemsOptions) {
     return createQueryHook(
         queryKeys.wardrobe.items(options),
-        () => getWardrobeItems(options)
+        () => getWardrobeItems(options),
+        {
+            // Use placeholder data to prevent blocking render
+            // Screen will show immediately with loading state
+            placeholderData: [],
+            // Don't refetch on mount if we have cached data
+            refetchOnMount: false,
+        }
     )();
 }
 

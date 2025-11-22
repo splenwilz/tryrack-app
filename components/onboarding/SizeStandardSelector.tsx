@@ -18,18 +18,19 @@ type SizeStandardSelectorProps = {
  */
 export function SizeStandardSelector({ control, name }: SizeStandardSelectorProps) {
     return (
-        <View style={styles.container}>
-            {SIZE_STANDARD_OPTIONS.map((option) => (
-                <Controller
-                    key={option}
-                    control={control}
-                    name={name}
-                    render={({ field: { value, onChange } }) => (
+        <Controller
+            control={control}
+            name={name}
+            render={({ field: { value, onChange } }) => (
+                <View style={styles.container}>
+                    {SIZE_STANDARD_OPTIONS.map((option) => (
+
                         <TouchableOpacity
                             style={[
                                 styles.pill,
                                 value === option && styles.pillActive,
                             ]}
+                            key={option}
                             onPress={() => onChange(option)}
                         >
                             <ThemedText
@@ -41,10 +42,10 @@ export function SizeStandardSelector({ control, name }: SizeStandardSelectorProp
                                 {option}
                             </ThemedText>
                         </TouchableOpacity>
-                    )}
-                />
-            ))}
-        </View>
+                    ))}
+                </View>
+            )}
+        />
     );
 }
 

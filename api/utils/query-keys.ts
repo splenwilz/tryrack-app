@@ -54,5 +54,15 @@ export const queryKeys = {
      */
     itemById: (itemId: string) => ['wardrobe', 'items', itemId] as const,
   },
+
+  /**
+   * Profile-related query keys
+   */
+  profile: {
+    /**
+     * Get current user's profile
+     */
+    current: () => ['profile', 'current'] as const,
+  },
 } as const;
 

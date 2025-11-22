@@ -13,7 +13,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useSignin } from '@/api/auth/signin/queries';
 import { type SigninRequest, SigninRequestSchema } from '@/api/auth/signin/types';
 import type { AuthResponse } from '@/api/auth/types';
-import { saveTokens, saveUser } from '@/api/client';
+import { saveTokens, saveUser, savePendingPassword, clearQueryCache } from '@/api/client';
 import { useSocialOAuth } from '@/hooks/use-social-oauth';
 import type { OAuthProvider } from '@/api/auth/oauth/types';
 import { Image } from 'expo-image';
@@ -59,6 +59,8 @@ export default function SignInScreen() {
         try {
             const response = await signinMutation(data);
             if ('requires_verification' in response) {
+                // Store password securely for resending verification code
+                await savePendingPassword(data.password);
                 router.push({
                     pathname: '/auth/verify-email',
                     params: {
@@ -69,6 +71,8 @@ export default function SignInScreen() {
             }
             else {
                 const authResponse = response as AuthResponse;
+                // Clear cache before saving new user data to prevent stale data
+                clearQueryCache();
                 await saveTokens(authResponse.access_token, authResponse.refresh_token);
                 await saveUser(authResponse.user);
                 router.replace('/(tabs)');

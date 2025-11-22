@@ -16,11 +16,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { VerifyEmailRequestSchema, type VerifyEmailRequest } from '@/api/auth/verify-email/types';
 import { useVerifyEmail } from '@/api/auth/verify-email/queries';
 import type { AuthResponse } from '@/api/auth/types';
-import { ApiError, saveTokens, saveUser } from '@/api/client';
+import { ApiError, saveTokens, saveUser, getPendingPassword, clearPendingPassword } from '@/api/client';
+import { useSignin } from '@/api/auth/signin/queries';
 
 export default function EmailVerificationScreen() {
-
     const { mutateAsync: verifyEmailMutation, isPending: isVerifyEmailPending } = useVerifyEmail();
+    const { mutateAsync: signinMutation } = useSignin();
     const [routeError, setRouteError] = useState<string | null>(null);
     //   const { verifyEmail, isLoading } = useAuth();
 
@@ -116,23 +117,63 @@ export default function EmailVerificationScreen() {
 
     /**
      * Handle resend verification code
-     * Since password is not stored for security reasons, user must return to signin
-     * to re-authenticate and get a new verification code
+     * Uses stored password from SecureStore to resend verification code
      */
-    const onResendCode = () => {
-        Alert.alert(
-            'Resend Verification Code',
-            'To resend the verification code, please return to the sign in screen and sign in again.',
-            [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                    text: 'Go to Sign In',
-                    onPress: () => {
-                        router.replace('/auth/signin');
-                    },
-                },
-            ]
-        );
+    const onResendCode = async () => {
+        try {
+            const storedPassword = await getPendingPassword();
+            
+            if (!storedPassword || !emailParam) {
+                Alert.alert(
+                    'Unable to Resend',
+                    'Please return to the sign in screen and sign in again to resend the verification code.',
+                    [
+                        { text: 'Cancel', style: 'cancel' },
+                        {
+                            text: 'Go to Sign In',
+                            onPress: () => {
+                                router.replace('/auth/signin');
+                            },
+                        },
+                    ]
+                );
+            return;
+        }
+
+            // Resend code by signing in again with stored password
+            const response = await signinMutation({
+                email: emailParam,
+                password: storedPassword,
+            });
+
+            if ('requires_verification' in response) {
+                // Update pending token if it changed
+                setPendingToken(response.pending_authentication_token);
+                setValue('pending_authentication_token', response.pending_authentication_token);
+                
+                Alert.alert(
+                    'Code Resent',
+                    'A new verification code has been sent to your email address.',
+                    [{ text: 'OK' }]
+                );
+            } else {
+                // User is already verified, redirect to app
+            const authResponse = response as AuthResponse;
+            await saveTokens(authResponse.access_token, authResponse.refresh_token);
+            await saveUser(authResponse.user);
+                await clearPendingPassword();
+            router.replace('/(tabs)');
+            }
+        } catch (error) {
+            const message =
+                error instanceof ApiError
+                    ? error.message
+                    : error instanceof Error
+                    ? error.message
+                    : 'Failed to resend verification code. Please try again.';
+            
+            Alert.alert('Error', message, [{ text: 'OK' }]);
+        }
     };
 
     /**
@@ -177,6 +218,8 @@ export default function EmailVerificationScreen() {
 
             await saveTokens(response.access_token, response.refresh_token);
             await saveUser(response.user);
+            // Clear stored password after successful verification
+            await clearPendingPassword();
             Alert.alert('Email verified successfully');
             router.replace('/(tabs)');
         } catch (error) {
@@ -251,7 +294,8 @@ export default function EmailVerificationScreen() {
                         {/* Resend Code */}
                         <TouchableOpacity
                             style={styles.resendButton}
-                            onPress={onResendCode}
+                            onPress={() => onResendCode()}
+                            disabled={isVerifyEmailPending}
                         >
                             <Text style={styles.resendText}>
                                 {"Didn't receive the code? Resend"}

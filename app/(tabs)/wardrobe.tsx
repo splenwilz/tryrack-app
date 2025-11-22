@@ -113,7 +113,10 @@ export default function WardrobeScreen() {
     }, [filters.category, filters.status]);
 
     // Fetch wardrobe items from API
-    const { data: wardrobeItemsResponse = [], refetch, isRefetching, isLoading } = useWardrobeItems(apiOptions);
+    const { data: wardrobeItemsResponse = [], refetch, isRefetching, isLoading, isFetching } = useWardrobeItems(apiOptions);
+
+    // Check if we're loading (including initial fetch with placeholder data)
+    const isDataLoading = isLoading || (isFetching && wardrobeItemsResponse.length === 0);
 
     // Transform API response to component format
     const allWardrobeItems = useMemo(() => {
@@ -345,8 +348,8 @@ export default function WardrobeScreen() {
                     />
                 }
             >
-                {/* Show empty state if no items and not loading */}
-                {!isLoading && allWardrobeItems.length === 0 ? (
+                {/* Show empty state only if data has loaded and there are no items */}
+                {!isDataLoading && allWardrobeItems.length === 0 ? (
                     <EmptyWardrobeState />
                 ) : (
                     <>
@@ -369,7 +372,7 @@ export default function WardrobeScreen() {
                         {/* Today's Outfit CTA */}
                         <TodayOutfitCTA onPress={noop} />
 
-                        {isLoading ? (
+                        {isDataLoading ? (
                             <>
                                 {/* Featured Item Skeleton */}
                                 <View style={styles.featuredSection}>
@@ -458,7 +461,7 @@ export default function WardrobeScreen() {
             </ScrollView>
 
             {/* Floating Action Button - Hide when empty state is shown */}
-            {!isLoading && allWardrobeItems.length > 0 && (
+            {!isDataLoading && allWardrobeItems.length > 0 && (
                 <TouchableOpacity
                     style={[styles.fab, { backgroundColor: tintColor }]}
                     onPress={() => router.push('/wardrobe/add-item')}

@@ -1,9 +1,11 @@
 import * as SecureStore from 'expo-secure-store'
 import type { AuthUser } from './auth/types'
+import { queryClient } from './query-client'
 
 const ACCESS_TOKEN_KEY = 'auth_access_token'
 const REFRESH_TOKEN_KEY = 'auth_refresh_token'
 const USER_STORAGE_KEY = 'auth_user'
+const PENDING_PASSWORD_KEY = 'auth_pending_password'
 
 /**
  * Custom error class for API errors with status code and parsed error message
@@ -180,6 +182,42 @@ export async function getStoredUser(): Promise<AuthUser | null> {
 }
 
 /**
+ * Save pending password to secure storage (for email verification resend)
+ * This is temporarily stored during email verification flow
+ */
+export async function savePendingPassword(password: string): Promise<void> {
+  try {
+    await SecureStore.setItemAsync(PENDING_PASSWORD_KEY, password)
+  } catch (error) {
+    console.error('[API] Failed to save pending password:', error)
+    throw error
+  }
+}
+
+/**
+ * Retrieve pending password from secure storage
+ */
+export async function getPendingPassword(): Promise<string | null> {
+  try {
+    return await SecureStore.getItemAsync(PENDING_PASSWORD_KEY)
+  } catch (error) {
+    console.error('[API] Failed to read pending password:', error)
+    return null
+  }
+}
+
+/**
+ * Clear pending password from secure storage
+ */
+export async function clearPendingPassword(): Promise<void> {
+  try {
+    await SecureStore.deleteItemAsync(PENDING_PASSWORD_KEY)
+  } catch (error) {
+    console.error('[API] Failed to clear pending password:', error)
+  }
+}
+
+/**
  * Clear tokens from secure storage (on logout)
  */
 export async function clearTokens(): Promise<void> {
@@ -187,8 +225,22 @@ export async function clearTokens(): Promise<void> {
     await SecureStore.deleteItemAsync(ACCESS_TOKEN_KEY)
     await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY)
     await SecureStore.deleteItemAsync(USER_STORAGE_KEY)
+    await SecureStore.deleteItemAsync(PENDING_PASSWORD_KEY)
   } catch (error) {
     console.error('[API] Failed to clear tokens:', error)
+  }
+}
+
+/**
+ * Clear React Query cache
+ * Should be called on logout and signin to prevent stale data from previous user
+ */
+export function clearQueryCache(): void {
+  try {
+    queryClient.clear()
+    console.log('[API] React Query cache cleared')
+  } catch (error) {
+    console.error('[API] Failed to clear query cache:', error)
   }
 }
 

@@ -1,4 +1,4 @@
-import { StyleSheet, View, ScrollView, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
+import { StyleSheet, View, ScrollView, TouchableOpacity, KeyboardAvoidingView, Platform, Alert, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/themed-text';
 import { useThemeColor } from '@/hooks/use-theme-color';
@@ -8,6 +8,10 @@ import { useProfileForm } from '@/hooks/onboarding/useProfileForm';
 import { useProfileImageUpload } from '@/hooks/onboarding/useProfileImageUpload';
 import { useProfileSubmission } from '@/hooks/onboarding/useProfileSubmission';
 import { ProfileImageUpload, ProfileFormFields } from '@/components/onboarding';
+import { router } from 'expo-router';
+import { useGetProfile } from '@/api/profile/queries';
+import { mapProfileToFormValues } from '@/components/onboarding/utils';
+import { useEffect } from 'react';
 
 /**
  * Profile Completion Screen
@@ -30,14 +34,29 @@ export default function ProfileCompletionScreen() {
     const iconColor = useThemeColor({}, 'icon');
     const textColor = useThemeColor({}, 'text');
 
-    // Form management
+    // Fetch existing profile
+    const { data: existingProfile, isLoading: isLoadingProfile, refetch: refetchProfile, isRefetching } = useGetProfile();
+
+    // Map existing profile to form values
+    const defaultFormValues = existingProfile ? mapProfileToFormValues(existingProfile) : undefined;
+
+    // Form management - initialize with existing profile data if available
     const {
         control,
         handleSubmit: formHandleSubmit,
         setValue,
         setError,
+        reset,
         formState: { errors },
-    } = useProfileForm();
+    } = useProfileForm(defaultFormValues);
+
+    // Update form when profile data loads (for cases where profile loads after form initialization)
+    useEffect(() => {
+        if (existingProfile) {
+            const formValues = mapProfileToFormValues(existingProfile);
+            reset(formValues);
+        }
+    }, [existingProfile, reset]);
 
     // Use useWatch to reactively update when image values change
     const profileImage = useWatch({
@@ -68,7 +87,19 @@ export default function ProfileCompletionScreen() {
                 keyboardVerticalOffset={Platform.OS === 'ios' ? 20 : 0}
             >
                 <View style={styles.header}>
-                    <TouchableOpacity style={styles.skipButton}>
+                    <TouchableOpacity
+                        style={styles.skipButton}
+                        onPress={() => {
+                            Alert.alert(
+                                'Skip Profile Setup?',
+                                'You can complete your profile later from settings.',
+                                [
+                                    { text: 'Cancel', style: 'cancel' },
+                                    { text: 'Skip', onPress: () => router.replace('/(tabs)') },
+                                ]
+                            );
+                        }}
+                    >
                         <ThemedText style={[styles.skipText, { color: iconColor }]}>Skip</ThemedText>
                     </TouchableOpacity>
                     <ThemedText type="title" style={styles.title}>Set Up Your Profile</ThemedText>
@@ -80,6 +111,13 @@ export default function ProfileCompletionScreen() {
                     contentContainerStyle={styles.contentContainer}
                     showsVerticalScrollIndicator={false}
                     keyboardShouldPersistTaps="handled"
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={isRefetching}
+                            onRefresh={() => refetchProfile()}
+                            tintColor={tintColor}
+                        />
+                    }
                 >
                     <ThemedText style={[styles.description, { color: iconColor }]}>
                         Help us personalize your experience. Add details later from your profile settings for better recommendations.

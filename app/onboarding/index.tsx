@@ -21,6 +21,7 @@ export default function OnboardingScreen() {
     const [selectedType, setSelectedType] = useState<'individual' | 'boutique' | null>(null);
 
     const handleSelectType = (type: 'individual' | 'boutique') => {
+        // TODO: Persist the user type
         setSelectedType(type);
         // Navigate to next step or save selection
         if (type === 'individual') {

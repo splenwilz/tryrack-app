@@ -1,5 +1,5 @@
 import type { ProfileFormValues } from './types';
-import type { ProfileCompletionRequest } from '@/api/profile/types';
+import type { ProfileCompletionRequest, ProfileCompletionResponse } from '@/api/profile/types';
 
 /**
  * Normalizes clothing size value (uppercase for letter sizes)
@@ -99,5 +99,93 @@ export function buildProfilePayload(
     addSizeField('dress_size_value', 'dress_size_standard', 'dress_size_value');
 
     return profilePayload as ProfileCompletionRequest;
+}
+
+/**
+ * Maps profile API response to form values
+ * 
+ * Converts backend response format to flattened form structure:
+ * - Converts numbers to strings for form inputs
+ * - Converts gender from uppercase to lowercase
+ * - Flattens measurements object
+ * - Maps image URLs to form fields
+ * 
+ * @param profile - Profile response from API
+ * @returns Form values for React Hook Form
+ */
+export function mapProfileToFormValues(profile: ProfileCompletionResponse): Partial<ProfileFormValues> {
+    const formValues: Partial<ProfileFormValues> = {};
+
+    // Convert gender from 'MALE'/'FEMALE' to 'male'/'female'
+    if (profile.gender) {
+        const genderLower = typeof profile.gender === 'string'
+            ? profile.gender.toLowerCase()
+            : String(profile.gender).toLowerCase();
+        if (genderLower === 'male' || genderLower === 'female') {
+            formValues.gender = genderLower as 'male' | 'female';
+        }
+    }
+
+    // Convert height_cm from number to string
+    if (profile.height_cm !== undefined && profile.height_cm !== null) {
+        formValues.height = String(profile.height_cm);
+    }
+
+    // Convert waist_cm from number to string
+    if (profile.waist_cm !== undefined && profile.waist_cm !== null) {
+        formValues.waist_cm = String(profile.waist_cm);
+    }
+
+    // Flatten measurements object
+    if (profile.measurements) {
+        if (profile.measurements.bust_cm !== undefined && profile.measurements.bust_cm !== null) {
+            formValues.bust_cm = String(profile.measurements.bust_cm);
+        }
+        if (profile.measurements.hips_cm !== undefined && profile.measurements.hips_cm !== null) {
+            formValues.hips_cm = String(profile.measurements.hips_cm);
+        }
+        if (profile.measurements.chest_cm !== undefined && profile.measurements.chest_cm !== null) {
+            formValues.chest_cm = String(profile.measurements.chest_cm);
+        }
+        if (profile.measurements.shoulder_width_cm !== undefined && profile.measurements.shoulder_width_cm !== null) {
+            formValues.shoulder_width_cm = String(profile.measurements.shoulder_width_cm);
+        }
+    }
+
+    // Map size fields
+    if (profile.shoe_size_value) {
+        formValues.shoe_size_value = profile.shoe_size_value;
+        formValues.shoe_size_standard = profile.shoe_size_standard || 'US';
+    }
+    if (profile.shirt_size_value) {
+        formValues.shirt_size_value = profile.shirt_size_value;
+        formValues.shirt_size_standard = profile.shirt_size_standard || 'US';
+    }
+    if (profile.jacket_size_value) {
+        formValues.jacket_size_value = profile.jacket_size_value;
+        formValues.jacket_size_standard = profile.jacket_size_standard || 'US';
+    }
+    if (profile.pants_size_value) {
+        formValues.pants_size_value = profile.pants_size_value;
+        formValues.pants_size_standard = profile.pants_size_standard || 'US';
+    }
+    if (profile.top_size_value) {
+        formValues.top_size_value = profile.top_size_value;
+        formValues.top_size_standard = profile.top_size_standard || 'US';
+    }
+    if (profile.dress_size_value) {
+        formValues.dress_size_value = profile.dress_size_value;
+        formValues.dress_size_standard = profile.dress_size_standard || 'US';
+    }
+
+    // Map image URLs
+    if (profile.profile_picture_url) {
+        formValues.profileImage = profile.profile_picture_url;
+    }
+    if (profile.full_body_image_url) {
+        formValues.fullBodyImage = profile.full_body_image_url;
+    }
+
+    return formValues;
 }
 
