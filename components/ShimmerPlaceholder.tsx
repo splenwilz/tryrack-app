@@ -37,7 +37,7 @@ export const ShimmerPlaceholder: React.FC<ShimmerPlaceholderProps> = ({
 
   useEffect(() => {
     // Create looping shimmer animation
-    Animated.loop(
+    const loopAnimation = Animated.loop(
       Animated.sequence([
         Animated.timing(shimmerAnimation, {
           toValue: 1,
@@ -50,7 +50,13 @@ export const ShimmerPlaceholder: React.FC<ShimmerPlaceholderProps> = ({
           useNativeDriver: true,
         }),
       ])
-    ).start();
+    );
+
+    loopAnimation.start();
+
+    return () => {
+      loopAnimation.stop();
+    };
   }, [shimmerAnimation]);
 
   // Interpolate animation for gradient movement

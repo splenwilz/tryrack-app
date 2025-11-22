@@ -56,7 +56,7 @@ export default function ResetPasswordScreen() {
     //   try {
     //     const result = await resetPassword(data);
     //     if (result.success) {
-    //       router.replace('/auth/sign-in');
+    //       router.replace('/auth/signin');
     //     } else {
     //       setError('root', {
     //         type: 'manual',

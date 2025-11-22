@@ -1,5 +1,5 @@
 import React from 'react';
-import { Modal, StyleSheet, View, TouchableOpacity, Image, StatusBar } from 'react-native';
+import { Modal, StyleSheet, View, TouchableOpacity, Image, StatusBar, useColorScheme } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/themed-text';
 import { useThemeColor } from '@/hooks/use-theme-color';
@@ -25,6 +25,9 @@ export function ImageViewModal({
     const backgroundColor = useThemeColor({}, 'background');
     const borderColor = useThemeColor({}, 'tabIconDefault');
     const insets = useSafeAreaInsets();
+    const colorScheme = useColorScheme() ?? 'light';
+    const barStyle: 'light-content' | 'dark-content' =
+        colorScheme === 'dark' ? 'light-content' : 'dark-content';
 
     return (
         <Modal
@@ -33,7 +36,7 @@ export function ImageViewModal({
             transparent={false}
             onRequestClose={onClose}
         >
-            <StatusBar barStyle="dark-content" />
+            <StatusBar barStyle={barStyle} />
             <View style={[styles.modalContainer, { backgroundColor, paddingTop: insets.top, paddingBottom: insets.bottom }]}>
                 {/* Header */}
                 <View style={styles.modalHeader}>

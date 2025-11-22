@@ -9,8 +9,8 @@
 
 // OAuth Configuration
 export const OAUTH_CONFIG = {
-    // Redirect URI scheme for mobile app
-    REDIRECT_SCHEME: process.env.EXPO_PUBLIC_OAUTH_REDIRECT_SCHEME || 'tryrack://',
+    // Redirect URI scheme for mobile app (matches app.json scheme, without ://)
+    REDIRECT_SCHEME: process.env.EXPO_PUBLIC_OAUTH_REDIRECT_SCHEME || 'tryrackapp',
     REDIRECT_PATH: process.env.EXPO_PUBLIC_OAUTH_REDIRECT_PATH || 'auth/callback',
 
     // Response type for OAuth flow

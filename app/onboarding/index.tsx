@@ -3,6 +3,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/themed-text';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { router } from 'expo-router';
+import { useState } from 'react';
 
 /**
  * Onboarding Screen - User Type Selection
@@ -15,6 +17,19 @@ export default function OnboardingScreen() {
     const backgroundColor = useThemeColor({}, 'background');
     const tintColor = useThemeColor({}, 'tint');
     const iconColor = useThemeColor({}, 'icon');
+
+    const [selectedType, setSelectedType] = useState<'individual' | 'boutique' | null>(null);
+
+    const handleSelectType = (type: 'individual' | 'boutique') => {
+        setSelectedType(type);
+        // Navigate to next step or save selection
+        if (type === 'individual') {
+            router.push('/onboarding/profile-completion');
+        } else {
+            // TODO: Implement boutique profile completion
+            router.push('/onboarding/profile-completion');
+        }
+    };
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor }]}>
@@ -40,6 +55,7 @@ export default function OnboardingScreen() {
                         style={[styles.userTypeCard, { backgroundColor }]}
                         activeOpacity={0.7}
                         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                        onPress={() => handleSelectType('individual')}
                     >
                         <View style={[styles.iconContainer, { backgroundColor: tintColor }]}>
                             <IconSymbol name="person.fill" size={32} color="white" />
@@ -75,6 +91,7 @@ export default function OnboardingScreen() {
                         style={[styles.userTypeCard, { backgroundColor }]}
                         activeOpacity={0.7}
                         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                        onPress={() => handleSelectType('boutique')}
                     >
                         <View style={[styles.iconContainer, { backgroundColor: tintColor }]}>
                             <IconSymbol name="bag.fill" size={32} color="white" />

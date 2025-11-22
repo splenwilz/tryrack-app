@@ -2,7 +2,6 @@ import {
     ScrollView,
     StatusBar,
     StyleSheet,
-    Text,
     TouchableOpacity,
     View,
 } from 'react-native';
@@ -19,6 +18,10 @@ import type { EmailVerificationResponse } from '@/api/auth/signin/types';
 import { saveTokens, saveUser } from '@/api/client';
 import type { OAuthProvider } from '@/api/auth/oauth/types';
 import { useSocialOAuth } from '@/hooks/use-social-oauth';
+import { useThemeColor } from '@/hooks/use-theme-color';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { ThemedText } from '@/components/themed-text';
+import { Image } from 'expo-image';
 
 const isVerificationResponse = (
     response: AuthResponse | EmailVerificationResponse
@@ -31,7 +34,7 @@ const isVerificationResponse = (
  * Features:
  * - Email, password, and password confirmation inputs
  * - Social sign-up options (Google, Apple)
- * - Form validation using React Hook Form and Yup
+ * - Form validation using React Hook Form and Zod
  * - Terms and conditions acceptance
  * - Error handling and loading states
  * - Navigation to sign in screen
@@ -40,6 +43,13 @@ const isVerificationResponse = (
  * @see https://reactnative.dev/docs/scrollview - Scrollable content
  */
 export default function SignUpScreen() {
+    const backgroundColor = useThemeColor({}, 'background');
+    const textColor = useThemeColor({}, 'text');
+    const iconColor = useThemeColor({}, 'icon');
+    const tintColor = useThemeColor({}, 'tint');
+    const colorScheme = useColorScheme();
+    const isDark = colorScheme === 'dark';
+
     const {
         mutateAsync: signupMutation,
         isPending: isSignupPending,
@@ -90,7 +100,6 @@ export default function SignUpScreen() {
                     params: {
                         email: loginResponse.email,
                         pending_authentication_token: loginResponse.pending_authentication_token,
-                        password: data.password,
                     },
                 });
                 return;
@@ -125,8 +134,8 @@ export default function SignUpScreen() {
     const isSubmitting = isSignupPending || isSigninPending || isSocialAuthPending;
 
     return (
-        <SafeAreaView style={styles.container}>
-            <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
+        <SafeAreaView style={[styles.container, { backgroundColor }]}>
+            <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
 
             <ScrollView
                 style={styles.scrollView}
@@ -135,18 +144,24 @@ export default function SignUpScreen() {
             >
                 {/* Header */}
                 <View style={styles.header}>
-                    <Text style={styles.logo}>TryRack</Text>
+                    <Image
+                        source={isDark ? require('../../assets/images/darklogo.png') : require('../../assets/images/logo.png')}
+                        style={styles.logoImage}
+                        contentFit="contain"
+                    />
                 </View>
 
                 {/* Main Content */}
                 <View style={styles.content}>
                     {/* Title */}
-                    <Text style={styles.title}>Create New Account</Text>
+                    <ThemedText type="title" style={[styles.title, { color: textColor }]}>
+                        Create New Account
+                    </ThemedText>
 
                     {/* Subtitle */}
-                    <Text style={styles.subtitle}>
+                    <ThemedText style={[styles.subtitle, { color: iconColor }]}>
                         Get started for free today!
-                    </Text>
+                    </ThemedText>
 
                     {/* Form */}
                     <View style={styles.form}>
@@ -206,7 +221,7 @@ export default function SignUpScreen() {
 
                         {/* Error Message */}
                         {errors.root && (
-                            <Text style={styles.errorText}>{errors.root.message}</Text>
+                            <ThemedText style={styles.errorText}>{errors.root.message}</ThemedText>
                         )}
 
                         {/* Sign Up Button */}
@@ -219,9 +234,9 @@ export default function SignUpScreen() {
 
                         {/* Separator */}
                         <View style={styles.separator}>
-                            <View style={styles.separatorLine} />
-                            <Text style={styles.separatorText}>or</Text>
-                            <View style={styles.separatorLine} />
+                            <View style={[styles.separatorLine, { backgroundColor: iconColor, opacity: 0.3 }]} />
+                            <ThemedText style={[styles.separatorText, { color: iconColor }]}>or</ThemedText>
+                            <View style={[styles.separatorLine, { backgroundColor: iconColor, opacity: 0.3 }]} />
                         </View>
 
                         {/* Social Sign Up Buttons */}
@@ -241,26 +256,38 @@ export default function SignUpScreen() {
 
                         {/* Terms and Conditions */}
                         <View style={styles.termsRow}>
-                            <Text style={styles.termsText}>By registering you agree to </Text>
+                            <ThemedText style={[styles.termsText, { color: iconColor }]}>
+                                By registering you agree to{' '}
+                            </ThemedText>
 
                             <TouchableOpacity onPress={() => router.push('/terms-of-service')}>
-                                <Text style={styles.termsLink}>Terms & Conditions</Text>
+                                <ThemedText style={[styles.termsLink, { color: tintColor }]}>
+                                    Terms & Conditions
+                                </ThemedText>
                             </TouchableOpacity>
 
-                            <Text style={styles.termsText}> and </Text>
+                            <ThemedText style={[styles.termsText, { color: iconColor }]}>
+                                {' '}and{' '}
+                            </ThemedText>
 
                             <TouchableOpacity onPress={() => router.push('/privacy-policy')}>
-                                <Text style={styles.termsLink}>Privacy Policy</Text>
+                                <ThemedText style={[styles.termsLink, { color: tintColor }]}>
+                                    Privacy Policy
+                                </ThemedText>
                             </TouchableOpacity>
                         </View>
 
                         {/* Footer */}
                         <View style={styles.footer}>
-                            <Text style={styles.footerText}>Already have an account?</Text>
+                            <ThemedText style={[styles.footerText, { color: iconColor }]}>
+                                Already have an account?
+                            </ThemedText>
                             <TouchableOpacity
                                 onPress={() => router.push('/auth/signin')}
                             >
-                                <Text style={styles.footerLink}>Sign In</Text>
+                                <ThemedText style={[styles.footerLink, { color: tintColor }]}>
+                                    Sign In
+                                </ThemedText>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -273,7 +300,6 @@ export default function SignUpScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#ffffff',
     },
     scrollView: {
         flex: 1,
@@ -286,10 +312,13 @@ const styles = StyleSheet.create({
         paddingTop: 20,
         paddingBottom: 20,
     },
+    logoImage: {
+        width: 180,
+        height: 100,
+    },
     logo: {
         fontSize: 32,
         fontWeight: 'bold',
-        color: '#D4AF37',
     },
     content: {
         flex: 1,
@@ -299,16 +328,15 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 28,
         fontWeight: 'bold',
-        color: '#000000',
         textAlign: 'center',
         marginBottom: 8,
     },
     subtitle: {
         fontSize: 16,
-        color: '#666666',
         textAlign: 'center',
         marginBottom: 32,
         lineHeight: 22,
+        opacity: 0.7,
     },
     form: {
         width: '100%',
@@ -327,12 +355,11 @@ const styles = StyleSheet.create({
     separatorLine: {
         flex: 1,
         height: 1,
-        backgroundColor: '#E5E5E7',
     },
     separatorText: {
         fontSize: 14,
-        color: '#8E8E93',
         marginHorizontal: 16,
+        opacity: 0.7,
     },
     socialButtonsContainer: {
         gap: 12,
@@ -351,13 +378,12 @@ const styles = StyleSheet.create({
     },
     termsText: {
         fontSize: 12,
-        color: '#666666',
         textAlign: 'center',
         lineHeight: 18,
+        opacity: 0.7,
     },
     termsLink: {
         fontSize: 12,
-        color: '#D4AF37',
         fontWeight: '500',
     },
     footer: {
@@ -368,12 +394,11 @@ const styles = StyleSheet.create({
     },
     footerText: {
         fontSize: 14,
-        color: '#666666',
         marginRight: 8,
+        opacity: 0.7,
     },
     footerLink: {
         fontSize: 14,
-        color: '#D4AF37',
         fontWeight: '500',
     },
 });

@@ -1,6 +1,5 @@
 import {
     View,
-    Text,
     StyleSheet,
     TouchableOpacity,
     StatusBar,
@@ -17,8 +16,19 @@ import type { AuthResponse } from '@/api/auth/types';
 import { saveTokens, saveUser } from '@/api/client';
 import { useSocialOAuth } from '@/hooks/use-social-oauth';
 import type { OAuthProvider } from '@/api/auth/oauth/types';
+import { Image } from 'expo-image';
+import { useThemeColor } from '@/hooks/use-theme-color';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { ThemedText } from '@/components/themed-text';
 
 export default function SignInScreen() {
+    const backgroundColor = useThemeColor({}, 'background');
+    const textColor = useThemeColor({}, 'text');
+    const iconColor = useThemeColor({}, 'icon');
+    const tintColor = useThemeColor({}, 'tint');
+    const colorScheme = useColorScheme();
+    const isDark = colorScheme === 'dark';
+
     const { mutateAsync: signinMutation, isPending: isSigninPending } = useSignin();
     const {
         control,
@@ -54,7 +64,6 @@ export default function SignInScreen() {
                     params: {
                         email: response.email,
                         pending_authentication_token: response.pending_authentication_token,
-                        password: data.password,
                     },
                 });
             }
@@ -87,28 +96,33 @@ export default function SignInScreen() {
     };
 
     return (
-        <SafeAreaView style={styles.container}>
-            <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
+        <SafeAreaView style={[styles.container, { backgroundColor }]}>
+            <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
 
             <ScrollView
                 style={styles.scrollView}
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
             >
-                {/* Header */}
                 <View style={styles.header}>
-                    <Text style={styles.logo}>TryRack</Text>
+                    <Image
+                        source={isDark ? require('../../assets/images/darklogo.png') : require('../../assets/images/logo.png')}
+                        style={styles.logoImage}
+                        contentFit="contain"
+                    />
                 </View>
 
                 {/* Main Content */}
                 <View style={styles.content}>
                     {/* Title */}
-                    <Text style={styles.title}>Welcome Back!</Text>
+                    <ThemedText type="title" style={[styles.title, { color: textColor }]}>
+                        Welcome Back!
+                    </ThemedText>
 
                     {/* Subtitle */}
-                    <Text style={styles.subtitle}>
-                        Welcome! Let&apos;s dive into your account
-                    </Text>
+                    <ThemedText style={[styles.subtitle, { color: iconColor }]}>
+                        Sign in to your account to continue
+                    </ThemedText>
 
                     {/* Form */}
                     <View style={styles.form}>
@@ -154,12 +168,14 @@ export default function SignInScreen() {
                             style={styles.forgotPassword}
                             onPress={() => router.push('/auth/forgot-password')}
                         >
-                            <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+                            <ThemedText style={[styles.forgotPasswordText, { color: tintColor }]}>
+                                Forgot Password?
+                            </ThemedText>
                         </TouchableOpacity>
 
                         {/* Error Message */}
                         {errors.root && (
-                            <Text style={styles.errorText}>{errors.root.message}</Text>
+                            <ThemedText style={styles.errorText}>{errors.root.message}</ThemedText>
                         )}
 
                         {/* Sign In Button */}
@@ -172,9 +188,9 @@ export default function SignInScreen() {
 
                         {/* Separator */}
                         <View style={styles.separator}>
-                            <View style={styles.separatorLine} />
-                            <Text style={styles.separatorText}>or</Text>
-                            <View style={styles.separatorLine} />
+                            <View style={[styles.separatorLine, { backgroundColor: iconColor, opacity: 0.3 }]} />
+                            <ThemedText style={[styles.separatorText, { color: iconColor }]}>or</ThemedText>
+                            <View style={[styles.separatorLine, { backgroundColor: iconColor, opacity: 0.3 }]} />
                         </View>
 
                         {/* Social Login Buttons */}
@@ -194,9 +210,13 @@ export default function SignInScreen() {
 
                         {/* Footer */}
                         <View style={styles.footer}>
-                            <Text style={styles.footerText}>Don&apos;t have an account?</Text>
+                            <ThemedText style={[styles.footerText, { color: iconColor }]}>
+                                Don&apos;t have an account?
+                            </ThemedText>
                             <TouchableOpacity onPress={() => router.push('/auth/signup')}>
-                                <Text style={styles.footerLink}>Sign Up</Text>
+                                <ThemedText style={[styles.footerLink, { color: tintColor }]}>
+                                    Sign Up
+                                </ThemedText>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -210,7 +230,6 @@ export default function SignInScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#ffffff',
     },
     scrollView: {
         flex: 1,
@@ -220,8 +239,13 @@ const styles = StyleSheet.create({
     },
     header: {
         alignItems: 'center',
-        paddingTop: 20,
+        paddingTop: 0,
         paddingBottom: 20,
+    },
+    logoImage: {
+        width: 180,
+        height: 100,
+        marginBottom: 20
     },
     logo: {
         fontSize: 32,
@@ -229,23 +253,21 @@ const styles = StyleSheet.create({
         color: '#D4AF37',
     },
     content: {
-        flex: 1,
         paddingHorizontal: 24,
-        justifyContent: 'center',
     },
     title: {
         fontSize: 28,
         fontWeight: 'bold',
-        color: '#000000',
         textAlign: 'center',
         marginBottom: 8,
+        marginTop: -15,
     },
     subtitle: {
         fontSize: 16,
-        color: '#666666',
         textAlign: 'center',
         marginBottom: 32,
         lineHeight: 22,
+        opacity: 0.7,
     },
     form: {
         width: '100%',
@@ -256,7 +278,6 @@ const styles = StyleSheet.create({
     },
     forgotPasswordText: {
         fontSize: 14,
-        color: '#D4AF37',
         fontWeight: '500',
     },
     errorText: {
@@ -273,12 +294,11 @@ const styles = StyleSheet.create({
     separatorLine: {
         flex: 1,
         height: 1,
-        backgroundColor: '#E5E5E5',
     },
     separatorText: {
         fontSize: 14,
-        color: '#666666',
         marginHorizontal: 16,
+        opacity: 0.7,
     },
     socialButtonsContainer: {
         marginBottom: 24,
@@ -291,12 +311,11 @@ const styles = StyleSheet.create({
     },
     footerText: {
         fontSize: 14,
-        color: '#666666',
         marginRight: 8,
+        opacity: 0.7,
     },
     footerLink: {
         fontSize: 14,
-        color: '#D4AF37',
         fontWeight: '500',
     },
 });

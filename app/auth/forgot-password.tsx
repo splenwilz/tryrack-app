@@ -65,10 +65,10 @@ export default function ForgotPasswordScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.logo}>TryRack</Text>
-          {/* Logo Here */}
           <Image
-            source="/images/logo.png"
+            source={require('../../assets/images/logo.png')}
+            style={{ width: 200, height: 200 }}
+            contentFit="contain"
           />
         </View>
 
@@ -142,7 +142,7 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: 24,
-    marginTop: '30%',
+    marginTop: '10%',
   },
   title: {
     fontSize: 28,

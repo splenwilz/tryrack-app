@@ -3,6 +3,7 @@
  * Shared types for wardrobe-related components
  */
 
+export type WardrobeItemStatus = 'clean' | 'dirty' | 'worn';
 export interface WardrobeItemCard {
     id: string;
     title: string;
@@ -11,11 +12,9 @@ export interface WardrobeItemCard {
     imageUrl: string;
     colors: string[];
     tags: string[];
-    status: 'clean' | 'dirty' | 'worn';
+    status: WardrobeItemStatus;
     last_worn_at?: string; // ISO datetime string
     wear_count?: number;
     created_at?: string;
 }
-
-export type WardrobeStatus = 'clean' | 'dirty' | 'worn';
 

@@ -10,12 +10,12 @@
  * ```ts
  * // In a query hook:
  * useQuery({
- *   queryKey: queryKeys.auth.user(userId),
- *   queryFn: () => fetchUser(userId),
+ *   queryKey: queryKeys.auth.user(),
+ *   queryFn: () => fetchUser(),
  * })
  * 
  * // In a mutation to invalidate:
- * queryClient.invalidateQueries({ queryKey: queryKeys.auth.user(userId) })
+ * queryClient.invalidateQueries({ queryKey: queryKeys.auth.user() })
  * ```
  */
 export const queryKeys = {

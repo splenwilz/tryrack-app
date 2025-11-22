@@ -15,38 +15,25 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { VerifyEmailRequestSchema, type VerifyEmailRequest } from '@/api/auth/verify-email/types';
 import { useVerifyEmail } from '@/api/auth/verify-email/queries';
-import { useSignin } from '@/api/auth/signin/queries';
-import type { EmailVerificationResponse } from '@/api/auth/signin/types';
 import type { AuthResponse } from '@/api/auth/types';
 import { ApiError, saveTokens, saveUser } from '@/api/client';
-
-const isVerificationResponse = (
-    response: AuthResponse | EmailVerificationResponse
-): response is EmailVerificationResponse => {
-    return 'requires_verification' in response;
-};
 
 export default function EmailVerificationScreen() {
 
     const { mutateAsync: verifyEmailMutation, isPending: isVerifyEmailPending } = useVerifyEmail();
-    const { mutateAsync: signinMutation, isPending: isSigninPending } = useSignin();
     const [routeError, setRouteError] = useState<string | null>(null);
     //   const { verifyEmail, isLoading } = useAuth();
 
     // Get email and pending token from route params (passed from sign-up)
+    // Note: Password is NOT passed through params for security reasons
     const params = useLocalSearchParams<{
         email?: string | string[];
-        password?: string | string[];
         pending_authentication_token?: string | string[];
     }>();
 
     const emailParam = useMemo(
         () => (typeof params.email === 'string' ? params.email : ''),
         [params.email]
-    );
-    const passwordParam = useMemo(
-        () => (typeof params.password === 'string' ? params.password : ''),
-        [params.password]
     );
     const pendingTokenParam = useMemo(
         () => (typeof params.pending_authentication_token === 'string' ? params.pending_authentication_token : ''),
@@ -129,49 +116,23 @@ export default function EmailVerificationScreen() {
 
     /**
      * Handle resend verification code
-     * Sends a new verification code to the user's email
+     * Since password is not stored for security reasons, user must return to signin
+     * to re-authenticate and get a new verification code
      */
-    const resendUnavailableReason = useMemo(() => {
-        if (!emailParam || !passwordParam) {
-            return 'Missing credentials to resend the code. Please sign in again.';
-        }
-        return null;
-    }, [emailParam, passwordParam]);
-
-    const onResendCode = async () => {
-        if (resendUnavailableReason) {
-            Alert.alert('Cannot resend code', resendUnavailableReason, [{ text: 'OK' }]);
-            return;
-        }
-
-        try {
-            const response = await signinMutation({
-                email: emailParam,
-                password: passwordParam,
-            });
-
-            if (isVerificationResponse(response) && response.requires_verification) {
-                setPendingToken(response.pending_authentication_token);
-                setValue('pending_authentication_token', response.pending_authentication_token);
-                setRouteError(null);
-                clearErrors('root');
-                Alert.alert('Code Sent', 'A new verification code has been sent to your email.', [{ text: 'OK' }]);
-                return;
-            }
-
-            // If signin succeeds without requiring verification, user is already verified.
-            const authResponse = response as AuthResponse;
-            await saveTokens(authResponse.access_token, authResponse.refresh_token);
-            await saveUser(authResponse.user);
-            Alert.alert('Already Verified', 'Your email was already verified. Signing you in.', [{ text: 'OK' }]);
-            router.replace('/(tabs)');
-        } catch (error) {
-            const message =
-                error instanceof ApiError
-                    ? error.message
-                    : 'Failed to resend verification code. Please try again.';
-            Alert.alert('Error', message, [{ text: 'OK' }]);
-        }
+    const onResendCode = () => {
+        Alert.alert(
+            'Resend Verification Code',
+            'To resend the verification code, please return to the sign in screen and sign in again.',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Go to Sign In',
+                    onPress: () => {
+                        router.replace('/auth/signin');
+                    },
+                },
+            ]
+        );
     };
 
     /**
@@ -291,10 +252,9 @@ export default function EmailVerificationScreen() {
                         <TouchableOpacity
                             style={styles.resendButton}
                             onPress={onResendCode}
-                            disabled={isSigninPending || Boolean(resendUnavailableReason)}
                         >
                             <Text style={styles.resendText}>
-                                {isSigninPending ? 'Sending...' : "Didn't receive the code? Resend"}
+                                {"Didn't receive the code? Resend"}
                             </Text>
                         </TouchableOpacity>
                     </View>

@@ -13,6 +13,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { CustomHeader } from '@/components/custom-header';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { router } from 'expo-router';
+import { ThemedText } from '@/components/themed-text';
 import { WardrobeFilterModal, type WardrobeFilters } from '@/components/home/WardrobeFilterModal';
 import {
     WardrobeCarousel,
@@ -33,6 +34,46 @@ import {
 } from '@/components/wardrobe/WardrobeSkeleton';
 
 const noop = () => { };
+
+/**
+ * Empty Wardrobe State Component
+ * Displays when user has no wardrobe items
+ */
+const EmptyWardrobeState: React.FC = () => {
+    const backgroundColor = useThemeColor({}, 'background');
+    const tintColor = useThemeColor({}, 'tint');
+
+    const handleAddFirstItem = () => {
+        router.push('/wardrobe/add-item');
+    };
+
+    return (
+        <View style={[styles.emptyState, { backgroundColor }]}>
+            <View style={styles.emptyStateIcon}>
+                <ThemedText style={styles.emptyStateEmoji}>👕</ThemedText>
+            </View>
+            <ThemedText type="title" style={styles.emptyStateTitle}>
+                Your Wardrobe is Empty
+            </ThemedText>
+            <ThemedText style={styles.emptyStateDescription}>
+                Start building your digital wardrobe by adding your favorite clothing items.
+            </ThemedText>
+            <TouchableOpacity
+                style={[styles.addButton, { backgroundColor: tintColor }]}
+                onPress={handleAddFirstItem}
+            >
+                <ThemedText style={styles.addButtonText}>Add Your First Item</ThemedText>
+            </TouchableOpacity>
+
+            <View style={styles.quickTips}>
+                <ThemedText style={styles.quickTipsTitle}>Quick Tips:</ThemedText>
+                <ThemedText style={styles.quickTip}>• Take photos of your clothes</ThemedText>
+                <ThemedText style={styles.quickTip}>• Organize by categories</ThemedText>
+                <ThemedText style={styles.quickTip}>• Get outfit recommendations</ThemedText>
+            </View>
+        </View>
+    );
+};
 
 /**
  * Wardrobe Screen Component
@@ -304,118 +345,127 @@ export default function WardrobeScreen() {
                     />
                 }
             >
-                {/* Filter Bar */}
-                <FilterBar
-                    hasActiveFilters={hasActiveFilters}
-                    filters={filters}
-                    onFilterPress={handleFilterPress}
-                    onClearFilters={handleClearFilters}
-                />
-
-                {/* Filter Summary */}
-                <FilterSummary
-                    hasActiveFilters={hasActiveFilters}
-                    filteredCount={filteredItems.length}
-                    totalCount={allWardrobeItems.length}
-                    onClearFilters={handleClearFilters}
-                />
-
-                {/* Today's Outfit CTA */}
-                <TodayOutfitCTA onPress={noop} />
-
-                {isLoading ? (
-                    <>
-                        {/* Featured Item Skeleton */}
-                        <View style={styles.featuredSection}>
-                            <FeaturedItemSkeleton />
-                        </View>
-
-                        {/* Recently Added Skeleton */}
-                        <WardrobeCarouselSkeleton title="Recently Added" />
-
-                        {/* Category Sections Skeleton */}
-                        <WardrobeCarouselSkeleton title="Tops" />
-                        <WardrobeCarouselSkeleton title="Bottoms" />
-
-                        {/* Status Grids Skeleton */}
-                        <StatusGridSkeleton
-                            title="Worn Items"
-                            subtitle="Clean these items to use in outfit recommendations"
-                        />
-                        <StatusGridSkeleton
-                            title="Dirty Items"
-                            subtitle="Mark as clean after washing"
-                        />
-                    </>
+                {/* Show empty state if no items and not loading */}
+                {!isLoading && allWardrobeItems.length === 0 ? (
+                    <EmptyWardrobeState />
                 ) : (
                     <>
-                        {/* Featured Item */}
-                        {featuredItem?.imageUrl && (
-                            <View style={styles.featuredSection}>
-                                <FeaturedWardrobeItem item={featuredItem} />
-                            </View>
-                        )}
+                        {/* Filter Bar */}
+                        <FilterBar
+                            hasActiveFilters={hasActiveFilters}
+                            filters={filters}
+                            onFilterPress={handleFilterPress}
+                            onClearFilters={handleClearFilters}
+                        />
 
-                        {/* Recently Added */}
-                        {recentItems.length > 0 && (
-                            <WardrobeCarousel
-                                title="Recently Added"
-                                items={recentItems}
-                                onViewAll={() => handleViewAll('recent')}
-                                formatLastWorn={formatLastWorn}
-                                style={!featuredItem ? { marginTop: 24 } : undefined}
-                            />
-                        )}
+                        {/* Filter Summary */}
+                        <FilterSummary
+                            hasActiveFilters={hasActiveFilters}
+                            filteredCount={filteredItems.length}
+                            totalCount={allWardrobeItems.length}
+                            onClearFilters={handleClearFilters}
+                        />
 
-                        {/* Dynamic Category Sections */}
-                        {groupedByCategory.sortedCategories.map((category) => {
-                            const items = groupedByCategory.groups[category];
-                            // Capitalize category name for display (e.g., "denim jacket" → "Denim Jacket")
-                            const displayTitle = category
-                                .split(' ')
-                                .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-                                .join(' ');
+                        {/* Today's Outfit CTA */}
+                        <TodayOutfitCTA onPress={noop} />
 
-                            // Only add 's' if category doesn't already end in 's' (avoid "chinoss", "jeanss")
-                            const pluralSuffix = category.endsWith('s') ? '' : 's';
+                        {isLoading ? (
+                            <>
+                                {/* Featured Item Skeleton */}
+                                <View style={styles.featuredSection}>
+                                    <FeaturedItemSkeleton />
+                                </View>
 
-                            return (
-                                <WardrobeCarousel
-                                    key={category}
-                                    title={`${displayTitle}${pluralSuffix} (${items.length})`}
-                                    items={items}
-                                    onViewAll={() => handleViewAll(category)}
-                                    formatLastWorn={formatLastWorn}
+                                {/* Recently Added Skeleton */}
+                                <WardrobeCarouselSkeleton title="Recently Added" />
+
+                                {/* Category Sections Skeleton */}
+                                <WardrobeCarouselSkeleton title="Tops" />
+                                <WardrobeCarouselSkeleton title="Bottoms" />
+
+                                {/* Status Grids Skeleton */}
+                                <StatusGridSkeleton
+                                    title="Worn Items"
+                                    subtitle="Clean these items to use in outfit recommendations"
                                 />
-                            );
-                        })}
+                                <StatusGridSkeleton
+                                    title="Dirty Items"
+                                    subtitle="Mark as clean after washing"
+                                />
+                            </>
+                        ) : (
+                            <>
+                                {/* Featured Item */}
+                                {featuredItem?.imageUrl && (
+                                    <View style={styles.featuredSection}>
+                                        <FeaturedWardrobeItem item={featuredItem} />
+                                    </View>
+                                )}
 
-                        {/* Worn Items Section */}
-                        <StatusGrid
-                            title="Worn Items"
-                            subtitle="Clean these items to use in outfit recommendations"
-                            items={wornItems}
-                            onStatusChange={handleStatusChange}
-                        />
+                                {/* Recently Added */}
+                                {recentItems.length > 0 && (
+                                    <WardrobeCarousel
+                                        title="Recently Added"
+                                        items={recentItems}
+                                        onViewAll={() => handleViewAll('recent')}
+                                        formatLastWorn={formatLastWorn}
+                                        style={!featuredItem ? { marginTop: 24 } : undefined}
+                                    />
+                                )}
 
-                        {/* Dirty Items Section */}
-                        <StatusGrid
-                            title="Dirty Items"
-                            subtitle="Mark as clean after washing"
-                            items={dirtyItems}
-                            onStatusChange={handleStatusChange}
-                        />
+                                {/* Dynamic Category Sections */}
+                                {groupedByCategory.sortedCategories.map((category) => {
+                                    const items = groupedByCategory.groups[category];
+                                    // Capitalize category name for display (e.g., "denim jacket" → "Denim Jacket")
+                                    const displayTitle = category
+                                        .split(' ')
+                                        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+                                        .join(' ');
+
+                                    // Only add 's' if category doesn't already end in 's' (avoid "chinoss", "jeanss")
+                                    const pluralSuffix = category.endsWith('s') ? '' : 's';
+
+                                    return (
+                                        <WardrobeCarousel
+                                            key={category}
+                                            title={`${displayTitle}${pluralSuffix} (${items.length})`}
+                                            items={items}
+                                            onViewAll={() => handleViewAll(category)}
+                                            formatLastWorn={formatLastWorn}
+                                        />
+                                    );
+                                })}
+
+                                {/* Worn Items Section */}
+                                <StatusGrid
+                                    title="Worn Items"
+                                    subtitle="Clean these items to use in outfit recommendations"
+                                    items={wornItems}
+                                    onStatusChange={handleStatusChange}
+                                />
+
+                                {/* Dirty Items Section */}
+                                <StatusGrid
+                                    title="Dirty Items"
+                                    subtitle="Mark as clean after washing"
+                                    items={dirtyItems}
+                                    onStatusChange={handleStatusChange}
+                                />
+                            </>
+                        )}
                     </>
                 )}
             </ScrollView>
 
-            {/* Floating Action Button */}
-            <TouchableOpacity
-                style={[styles.fab, { backgroundColor: tintColor }]}
-                onPress={() => router.push('/wardrobe/add-item')}
-            >
-                <IconSymbol name="plus" size={24} color={fabIconColor} />
-            </TouchableOpacity>
+            {/* Floating Action Button - Hide when empty state is shown */}
+            {!isLoading && allWardrobeItems.length > 0 && (
+                <TouchableOpacity
+                    style={[styles.fab, { backgroundColor: tintColor }]}
+                    onPress={() => router.push('/wardrobe/add-item')}
+                >
+                    <IconSymbol name="plus" size={24} color={fabIconColor} />
+                </TouchableOpacity>
+            )}
 
             {/* Filter Modal */}
             <WardrobeFilterModal
@@ -458,5 +508,72 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.3,
         shadowRadius: 8,
         elevation: 8,
+    },
+    // Empty State Styles
+    emptyState: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 40,
+    },
+    emptyStateIcon: {
+        minWidth: 160,
+        minHeight: 160,
+        padding: 20,
+        borderRadius: 80,
+        backgroundColor: 'rgba(0,0,0,0.05)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginTop: 24,
+        marginBottom: 24,
+    },
+    emptyStateEmoji: {
+        fontSize: 60,
+        lineHeight: 120,
+        includeFontPadding: false,
+        textAlignVertical: 'center',
+        zIndex: 1,
+    },
+    emptyStateTitle: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        textAlign: 'center',
+        marginBottom: 12,
+    },
+    emptyStateDescription: {
+        fontSize: 16,
+        textAlign: 'center',
+        opacity: 0.7,
+        lineHeight: 24,
+        marginBottom: 32,
+    },
+    addButton: {
+        paddingVertical: 16,
+        paddingHorizontal: 32,
+        borderRadius: 12,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 4,
+        marginBottom: 32,
+    },
+    addButtonText: {
+        color: 'white',
+        fontSize: 16,
+        fontWeight: '600',
+    },
+    quickTips: {
+        alignItems: 'flex-start',
+    },
+    quickTipsTitle: {
+        fontSize: 16,
+        fontWeight: '600',
+        marginBottom: 12,
+    },
+    quickTip: {
+        fontSize: 14,
+        opacity: 0.7,
+        marginBottom: 4,
     },
 });
