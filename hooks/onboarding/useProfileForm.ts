@@ -23,8 +23,9 @@ const formResolver: Resolver<ProfileFormValues> = async (values) => {
 export function useProfileForm(defaultValues?: Partial<ProfileFormValues>): UseFormReturn<ProfileFormValues> {
     return useForm<ProfileFormValues>({
         resolver: formResolver,
+        mode: 'onBlur',
         defaultValues: {
-            gender: defaultValues?.gender || 'female',
+            gender: defaultValues?.gender,
             height_cm: defaultValues?.height_cm || '',
             waist_cm: defaultValues?.waist_cm || '',
             bust_cm: defaultValues?.bust_cm || '',

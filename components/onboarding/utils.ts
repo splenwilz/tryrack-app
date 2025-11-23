@@ -1,6 +1,7 @@
 import type { ProfileFormValues } from './types';
 import type { ProfileCompletionRequest, ProfileCompletionResponse, SizeStandard } from '@/api/profile/types';
 import { ProfileCompletionRequestSchema } from '@/api/profile/types';
+import { ZodError } from 'zod';
 
 /**
  * Normalizes clothing size value (uppercase for letter sizes)
@@ -111,8 +112,47 @@ export function buildProfilePayload(
 
     // Validate payload against schema to ensure type safety
     // This ensures the payload matches ProfileCompletionRequest exactly
-    const validatedPayload = ProfileCompletionRequestSchema.parse(profilePayload);
-    return validatedPayload;
+    try {
+        const validatedPayload = ProfileCompletionRequestSchema.parse(profilePayload);
+        return validatedPayload;
+    } catch (error) {
+        // Format Zod validation errors into user-friendly messages
+        if (error instanceof ZodError) {
+            // Map technical field names to user-friendly labels
+            const fieldNameMap: Record<string, string> = {
+                'shirt_size_value': 'Shirt Size',
+                'jacket_size_value': 'Jacket Size',
+                'pants_size_value': 'Pants Size',
+                'top_size_value': 'Top Size',
+                'dress_size_value': 'Dress Size',
+                'shoe_size_value': 'Shoe Size',
+                'height_cm': 'Height',
+                'waist_cm': 'Waist',
+                'gender': 'Gender',
+                'profile_picture_url': 'Profile Picture',
+                'full_body_image_url': 'Full Body Image',
+            };
+
+            const errorMessages = error.issues.map((issue) => {
+                const fieldPath = issue.path.join('.');
+                // Use mapped name if available, otherwise convert snake_case to readable format
+                const readableFieldName = fieldNameMap[fieldPath] ||
+                    fieldPath
+                        .replace(/_/g, ' ')
+                        .replace(/\b\w/g, (l) => l.toUpperCase());
+
+                // Clean up the error message to be more user-friendly
+                let message = issue.message;
+                // Remove technical details like "Input should be..." and just show the requirement
+                message = message.replace(/^Input should be /i, 'Must be ');
+                message = message.replace(/^Expected /i, '');
+
+                return `${readableFieldName}: ${message}`;
+            });
+            throw new Error(errorMessages.join('\n'));
+        }
+        throw error;
+    }
 }
 
 /**

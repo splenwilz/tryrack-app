@@ -29,6 +29,7 @@ export function useProfileSubmission(setError: UseFormSetError<ProfileFormValues
     const hasExistingProfile = !!existingProfile;
 
     const handleSubmit = async (data: ProfileFormValues) => {
+        if (isSubmitting) return;
         setIsSubmitting(true);
         const submissionStartTime = Date.now();
 
@@ -126,9 +127,20 @@ export function useProfileSubmission(setError: UseFormSetError<ProfileFormValues
             const totalDuration = Date.now() - submissionStartTime;
             console.error(`[Profile] Profile submission error (after ${totalDuration}ms):`, error);
 
-            // Extract error message
-            const errorMessage =
-                error instanceof Error ? error.message : 'Failed to save profile. Please try again.';
+            // Extract and format error message
+            let errorMessage = 'Failed to save profile. Please try again.';
+
+            if (error instanceof Error) {
+                // If error message contains newlines (multiple validation errors), format it nicely
+                if (error.message.includes('\n')) {
+                    errorMessage = error.message
+                        .split('\n')
+                        .map((line, index) => `${index + 1}. ${line}`)
+                        .join('\n\n');
+                } else {
+                    errorMessage = error.message;
+                }
+            }
 
             // Set error to root field for display in form
             setError('root', {
@@ -136,8 +148,12 @@ export function useProfileSubmission(setError: UseFormSetError<ProfileFormValues
                 message: errorMessage,
             });
 
-            // Also show alert for immediate feedback
-            Alert.alert('Validation Error', errorMessage, [{ text: 'OK' }]);
+            // Show alert with user-friendly error message
+            // Limit message length to prevent UI issues
+            const alertMessage = errorMessage.length > 200
+                ? `${errorMessage.substring(0, 200)}...`
+                : errorMessage;
+            Alert.alert('Validation Error', alertMessage, [{ text: 'OK' }]);
         } finally {
             setIsSubmitting(false);
         }
