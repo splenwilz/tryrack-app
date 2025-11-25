@@ -3,7 +3,7 @@
  * Shared types for wardrobe-related components
  */
 
-export type WardrobeItemStatus = 'clean' | 'dirty' | 'worn';
+export type WardrobeItemStatus = 'clean' | 'dirty' | 'worn' | 'planned';
 export interface WardrobeItemCard {
     id: string;
     title: string;

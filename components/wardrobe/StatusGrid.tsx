@@ -6,7 +6,7 @@
  */
 
 import React from 'react';
-import { View, Image, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Image, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -18,7 +18,10 @@ interface StatusGridProps {
     title: string;
     subtitle: string;
     items: WardrobeItemCard[];
-    onStatusChange?: (itemId: string, newStatus: 'clean' | 'worn' | 'dirty') => void;
+    onStatusChange?: (itemId: string, newStatus: 'clean' | 'worn' | 'dirty' | 'planned') => void;
+    onItemPress?: (itemId: string | number) => void;
+    updatingItems?: Set<string>; // Items currently being updated
+    onMarkAsWorn?: (itemId: string) => void; // Optional: For planned items to convert to worn
 }
 
 export const StatusGrid: React.FC<StatusGridProps> = ({
@@ -26,6 +29,9 @@ export const StatusGrid: React.FC<StatusGridProps> = ({
     subtitle,
     items,
     onStatusChange,
+    onItemPress,
+    updatingItems = new Set(),
+    onMarkAsWorn,
 }) => {
     const backgroundColor = useThemeColor({}, 'background');
     const tintColor = useThemeColor({}, 'tint');
@@ -46,7 +52,12 @@ export const StatusGrid: React.FC<StatusGridProps> = ({
             <ThemedText style={styles.subtitle}>{subtitle}</ThemedText>
             <View style={styles.statusGrid}>
                 {items.map((item) => (
-                    <View key={item.id} style={[styles.statusCard, { backgroundColor }]}>
+                    <TouchableOpacity
+                        key={item.id}
+                        style={[styles.statusCard, { backgroundColor }]}
+                        onPress={() => onItemPress?.(item.id)}
+                        activeOpacity={0.7}
+                    >
                         <Image source={{ uri: item.imageUrl }} style={styles.statusCardImage} />
                         <View style={styles.statusCardInfo}>
                             <ThemedText style={styles.statusCardTitle} numberOfLines={2}>
@@ -57,15 +68,59 @@ export const StatusGrid: React.FC<StatusGridProps> = ({
                                     {formatLastWorn(item.last_worn_at)}
                                 </ThemedText>
                             )}
+                            {onMarkAsWorn && item.status === 'planned' ? (
+                                // For planned items, show "Mark as Worn" button
+                                <TouchableOpacity
+                                    style={[
+                                        styles.cleanButton,
+                                        { backgroundColor: tintColor },
+                                        updatingItems.has(item.id) && styles.cleanButtonDisabled,
+                                    ]}
+                                    onPress={(e) => {
+                                        e.stopPropagation();
+                                        if (!updatingItems.has(item.id)) {
+                                            onMarkAsWorn(item.id);
+                                        }
+                                    }}
+                                    disabled={updatingItems.has(item.id)}
+                                >
+                                    {updatingItems.has(item.id) ? (
+                                        <ActivityIndicator size="small" color={buttonIconColor} />
+                                    ) : (
+                                        <IconSymbol name="tshirt.fill" size={14} color={buttonIconColor} />
+                                    )}
+                                    <ThemedText style={[styles.cleanButtonText, { color: buttonTextColor }]}>
+                                        {updatingItems.has(item.id) ? 'Updating...' : 'Mark as Worn'}
+                                    </ThemedText>
+                                </TouchableOpacity>
+                            ) : (
+                                // For other items (worn/dirty), show "Mark Clean" button
                             <TouchableOpacity
-                                style={[styles.cleanButton, { backgroundColor: tintColor }]}
-                                onPress={() => onStatusChange?.(item.id, 'clean')}
+                                    style={[
+                                        styles.cleanButton,
+                                        { backgroundColor: tintColor },
+                                        updatingItems.has(item.id) && styles.cleanButtonDisabled,
+                                    ]}
+                                    onPress={(e) => {
+                                        e.stopPropagation();
+                                        if (!updatingItems.has(item.id)) {
+                                            onStatusChange?.(item.id, 'clean');
+                                        }
+                                    }}
+                                    disabled={updatingItems.has(item.id)}
                             >
+                                    {updatingItems.has(item.id) ? (
+                                        <ActivityIndicator size="small" color={buttonIconColor} />
+                                    ) : (
                                 <IconSymbol name="checkmark.circle.fill" size={14} color={buttonIconColor} />
-                                <ThemedText style={[styles.cleanButtonText, { color: buttonTextColor }]}>Mark Clean</ThemedText>
+                                    )}
+                                    <ThemedText style={[styles.cleanButtonText, { color: buttonTextColor }]}>
+                                        {updatingItems.has(item.id) ? 'Updating...' : 'Mark Clean'}
+                                    </ThemedText>
                             </TouchableOpacity>
+                            )}
                         </View>
-                    </View>
+                    </TouchableOpacity>
                 ))}
             </View>
         </View>
@@ -130,6 +185,9 @@ const styles = StyleSheet.create({
     cleanButtonText: {
         fontSize: 12,
         fontWeight: '600',
+    },
+    cleanButtonDisabled: {
+        opacity: 0.6,
     },
 });
 

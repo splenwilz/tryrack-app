@@ -29,7 +29,13 @@ export default function RootLayout() {
           <Stack.Screen name="privacy-policy" options={{ headerShown: false }} />
           <Stack.Screen name="onboarding/index" options={{ headerShown: false }} />
           <Stack.Screen name="onboarding/profile-completion" options={{ headerShown: false }} />
-          <Stack.Screen name="wardrobe/add-item" options={{ headerShown: false }} />
+          <Stack.Screen name="wardrobe/manage-item" options={{ headerShown: false }} />
+          <Stack.Screen name="wardrobe/item_detail" options={{ headerShown: false }} />
+          <Stack.Screen name="wardrobe/category" options={{ headerShown: false }} />
+          <Stack.Screen name="wardrobe/todays_outfit" options={{ headerShown: false }} />
+          <Stack.Screen name="wardrobe/virtual_tryon" options={{ headerShown: false }} />
+          <Stack.Screen name="wardrobe/tryon_detail" options={{ headerShown: false }} />
+          <Stack.Screen name="tryon_history" options={{ headerShown: false }} />
         </Stack>
         <StatusBar style="auto" />
       </ThemeProvider>

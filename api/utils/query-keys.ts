@@ -64,5 +64,25 @@ export const queryKeys = {
      */
     current: () => ['profile', 'current'] as const,
   },
+
+  /**
+   * Virtual try-on related query keys
+   */
+  virtualTryOn: {
+    /**
+     * All virtual try-on queries
+     */
+    all: () => ['virtual-try-on'] as const,
+
+    /**
+     * Virtual try-on history list
+     */
+    history: () => ['virtual-try-on', 'history'] as const,
+
+    /**
+     * Virtual try-on by ID
+     */
+    byId: (id: number) => ['virtual-try-on', id] as const,
+  },
 } as const;
 

@@ -16,7 +16,7 @@ export const EmptyWardrobeState: React.FC = () => {
     const tintColor = useThemeColor({}, 'tint');
 
     const handleAddFirstItem = () => {
-        router.push('/wardrobe/add-item');
+        router.push('/wardrobe/manage-item');
     };
 
     return (

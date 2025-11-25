@@ -45,6 +45,9 @@ export default function HomeScreen() {
         <Link href="/onboarding/profile-completion">
           <ThemedText type="subtitle">Profile Completion</ThemedText>
         </Link>
+        <Link href="/wardrobe/virtual_tryon">
+          <ThemedText type="subtitle">Virtual Try-on</ThemedText>
+        </Link>
         <ThemedText>
           Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
           Press{' '}

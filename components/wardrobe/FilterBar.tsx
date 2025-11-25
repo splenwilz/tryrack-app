@@ -10,7 +10,7 @@ import { View, TouchableOpacity, StyleSheet } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import type { WardrobeFilters } from '@/components/home/WardrobeFilterModal';
+import type { WardrobeFilters } from '@/components/wardrobe/WardrobeFilterModal';
 
 interface FilterBarProps {
     hasActiveFilters: boolean;

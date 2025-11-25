@@ -24,39 +24,17 @@ export function useWardrobeImageProcessing(options?: UseWardrobeImageProcessingO
         setProcessingStage(null);
     };
 
-    const handleSelectPhoto = async (): Promise<{ imageUrl: string | null; metadata: WardrobeMetadata | null }> => {
+    /**
+     * Processes the selected image (metadata extraction and image generation)
+     */
+    const processImage = async (asset: ImagePicker.ImagePickerAsset): Promise<{ imageUrl: string | null; metadata: WardrobeMetadata | null }> => {
+        if (!asset?.uri) {
+            Alert.alert('Image Error', 'Unable to read the selected image.');
+            resetProcessingState();
+            return { imageUrl: null, metadata: null };
+        }
+
         try {
-            setIsPickingPhoto(true);
-            setProcessingStage('uploading');
-
-            const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-            if (status !== 'granted') {
-                Alert.alert(
-                    'Permission Required',
-                    'Please enable photo library permissions to add a wardrobe item image.'
-                );
-                resetProcessingState();
-                return { imageUrl: null, metadata: null };
-            }
-
-            const result = await ImagePicker.launchImageLibraryAsync({
-                mediaTypes: ['images'],
-                allowsEditing: false,
-                quality: 0.8,
-            });
-
-            if (result.canceled || !result.assets?.length) {
-                resetProcessingState();
-                return { imageUrl: null, metadata: null };
-            }
-
-            const [asset] = result.assets;
-            if (!asset?.uri) {
-                Alert.alert('Image Error', 'Unable to read the selected image.');
-                resetProcessingState();
-                return { imageUrl: null, metadata: null };
-            }
-
             // Step 1: Start both metadata extraction and image generation in parallel
             setProcessingStage('analyzing');
             console.log('[Wardrobe] Starting parallel AI analysis (metadata + image generation)...');
@@ -99,15 +77,131 @@ export function useWardrobeImageProcessing(options?: UseWardrobeImageProcessingO
 
             return { imageUrl: processedImageUrl, metadata };
         } catch (error) {
-            console.error('[Wardrobe] Image selection/upload failed:', error);
+            console.error('[Wardrobe] Image processing failed:', error);
             Alert.alert(
-                'Upload Failed',
-                error instanceof Error ? error.message : 'Unable to upload image. Please try again.'
+                'Processing Failed',
+                error instanceof Error ? error.message : 'Unable to process image. Please try again.'
             );
             resetProcessingState();
             return { imageUrl: null, metadata: null };
-        } finally {
+        }
+    };
+
+    const handleSelectPhoto = async (): Promise<{ imageUrl: string | null; metadata: WardrobeMetadata | null }> => {
+        try {
+            setIsPickingPhoto(true);
+
+            // Request media library permissions first (needed for both camera and gallery)
+            const { status: mediaStatus } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+            if (mediaStatus !== 'granted') {
+                Alert.alert(
+                    'Permission Required',
+                    'Please enable photo library permissions to add a wardrobe item image.'
+                );
+                resetProcessingState();
+                setIsPickingPhoto(false);
+                return { imageUrl: null, metadata: null };
+            }
+
+            // Show options (Camera or Gallery) and wait for user choice
+            return new Promise((resolve) => {
+                const handleCamera = async () => {
+                    try {
+                        setProcessingStage('uploading');
+                        const { status: cameraStatus } = await ImagePicker.requestCameraPermissionsAsync();
+                        if (cameraStatus !== 'granted') {
+                            Alert.alert(
+                                'Permission Required',
+                                'Camera access is required to take photos. Please enable camera access in your device settings.'
+                            );
+                            resetProcessingState();
+                            setIsPickingPhoto(false);
+                            resolve({ imageUrl: null, metadata: null });
+                            return;
+                        }
+
+                        const result = await ImagePicker.launchCameraAsync({
+                            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                            allowsEditing: false,
+                            quality: 0.8,
+                        });
+
+                        if (result.canceled || !result.assets?.length) {
+                            resetProcessingState();
+                            setIsPickingPhoto(false);
+                            resolve({ imageUrl: null, metadata: null });
+                            return;
+                        }
+
+                        const processed = await processImage(result.assets[0]);
+                        setIsPickingPhoto(false);
+                        resolve(processed);
+                    } catch (error) {
+                        console.error('[Wardrobe] Camera error:', error);
+                        Alert.alert('Error', 'Failed to open camera. Please try again.');
+                        resetProcessingState();
+                        setIsPickingPhoto(false);
+                        resolve({ imageUrl: null, metadata: null });
+                    }
+                };
+
+                const handleGallery = async () => {
+                    try {
+                        setProcessingStage('uploading');
+                        const result = await ImagePicker.launchImageLibraryAsync({
+                            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                            allowsEditing: false,
+                            quality: 0.8,
+                        });
+
+                        if (result.canceled || !result.assets?.length) {
+                            resetProcessingState();
+                            setIsPickingPhoto(false);
+                            resolve({ imageUrl: null, metadata: null });
+                            return;
+                        }
+
+                        const processed = await processImage(result.assets[0]);
+                        setIsPickingPhoto(false);
+                        resolve(processed);
+                    } catch (error) {
+                        console.error('[Wardrobe] Image picker error:', error);
+                        Alert.alert('Error', 'Failed to open image library. Please try again.');
+                        resetProcessingState();
+                        setIsPickingPhoto(false);
+                        resolve({ imageUrl: null, metadata: null });
+                    }
+                };
+
+                const handleCancel = () => {
+                    resetProcessingState();
+                    setIsPickingPhoto(false);
+                    resolve({ imageUrl: null, metadata: null });
+                };
+
+                Alert.alert(
+                    'Add Item Photo',
+                    'Choose an option',
+                    [
+                        { text: 'Cancel', style: 'cancel', onPress: handleCancel },
+                        { text: 'Take Photo', onPress: handleCamera },
+                        { text: 'Choose from Gallery', onPress: handleGallery },
+                    ],
+                    {
+                        cancelable: true,
+                        onDismiss: handleCancel,
+                    }
+                );
+            });
+        } catch (error) {
+            console.error('[Wardrobe] Image selection failed:', error);
+            Alert.alert(
+                'Error',
+                error instanceof Error ? error.message : 'An unexpected error occurred. Please try again.'
+            );
+            resetProcessingState();
             setIsPickingPhoto(false);
+            return { imageUrl: null, metadata: null };
         }
     };
 

@@ -1,4 +1,4 @@
-import { StyleSheet, View, ScrollView, TouchableOpacity, KeyboardAvoidingView, Platform, Alert, RefreshControl } from 'react-native';
+import { StyleSheet, View, ScrollView, TouchableOpacity, KeyboardAvoidingView, Platform, Alert, RefreshControl, useColorScheme } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/themed-text';
 import { useThemeColor } from '@/hooks/use-theme-color';
@@ -33,6 +33,8 @@ export default function ProfileCompletionScreen() {
     const tintColor = useThemeColor({}, 'tint');
     const iconColor = useThemeColor({}, 'icon');
     const textColor = useThemeColor({}, 'text');
+    const colorScheme = useColorScheme();
+    const isDark = colorScheme === 'dark';
 
     // Fetch existing profile
     const { data: existingProfile, isLoading: isLoadingProfile, refetch: refetchProfile, isRefetching } = useGetProfile();
@@ -183,8 +185,8 @@ export default function ProfileCompletionScreen() {
                             isSubmitting || isCreatingProfile || isUploadingImage || Boolean(isImageUploading)
                         }
                     >
-                        <IconSymbol name="checkmark.circle.fill" size={20} color="white" />
-                        <ThemedText style={styles.saveButtonText}>
+                        <IconSymbol name="checkmark.circle.fill" size={20} color={isDark ? "#000" : "#fff"} />
+                        <ThemedText style={[styles.saveButtonText, { color: isDark ? "#000" : "#fff" }]}>
                             {isSubmitting || isCreatingProfile || isUploadingImage
                                 ? 'Saving...'
                                 : 'Complete Profile'}

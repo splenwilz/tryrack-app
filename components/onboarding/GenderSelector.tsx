@@ -1,4 +1,4 @@
-import { View, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, useColorScheme } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { Controller, type FieldErrors, type Control } from 'react-hook-form';
 import type { ProfileFormValues } from './types';
@@ -18,6 +18,13 @@ type GenderSelectorProps = {
  * @see https://react-hook-form.com/docs/controller - React Hook Form Controller
  */
 export function GenderSelector({ control, errors, tintColor, iconColor }: GenderSelectorProps) {
+    const colorScheme = useColorScheme();
+    const isDark = colorScheme === 'dark';
+    const unselectedBackground = isDark ? 'rgba(255,255,255,0.08)' : 'transparent';
+    const unselectedBorder = isDark ? 'rgba(255,255,255,0.25)' : iconColor;
+    const unselectedText = isDark ? '#FFFFFF' : iconColor;
+    const selectedText = isDark ? '#000000' : '#FFFFFF';
+
     return (
         <View style={styles.container}>
             <Controller
@@ -29,14 +36,14 @@ export function GenderSelector({ control, errors, tintColor, iconColor }: Gender
                             style={[
                                 styles.button,
                                 {
-                                    backgroundColor: value === 'male' ? tintColor : 'transparent',
-                                    borderColor: value === 'male' ? tintColor : iconColor,
+                                    backgroundColor: value === 'male' ? tintColor : unselectedBackground,
+                                    borderColor: value === 'male' ? tintColor : unselectedBorder,
                                 },
                             ]}
                             onPress={() => onChange('male')}
                         >
                             <ThemedText
-                                style={[styles.text, { color: value === 'male' ? 'white' : iconColor }]}
+                                style={[styles.text, { color: value === 'male' ? selectedText : unselectedText }]}
                             >
                                 Male
                             </ThemedText>
@@ -45,14 +52,14 @@ export function GenderSelector({ control, errors, tintColor, iconColor }: Gender
                             style={[
                                 styles.button,
                                 {
-                                    backgroundColor: value === 'female' ? tintColor : 'transparent',
-                                    borderColor: value === 'female' ? tintColor : iconColor,
+                                    backgroundColor: value === 'female' ? tintColor : unselectedBackground,
+                                    borderColor: value === 'female' ? tintColor : unselectedBorder,
                                 },
                             ]}
                             onPress={() => onChange('female')}
                         >
                             <ThemedText
-                                style={[styles.text, { color: value === 'female' ? 'white' : iconColor }]}
+                                style={[styles.text, { color: value === 'female' ? selectedText : unselectedText }]}
                             >
                                 Female
                             </ThemedText>
@@ -61,7 +68,12 @@ export function GenderSelector({ control, errors, tintColor, iconColor }: Gender
                 )}
             />
             {errors.gender?.message && (
-                <ThemedText style={[styles.errorText, { color: '#FF3B30' }]}>
+                <ThemedText
+                    style={[
+                        styles.errorText,
+                        { color: isDark ? '#FF8A80' : '#FF3B30' },
+                    ]}
+                >
                     {errors.gender?.message}
                 </ThemedText>
             )}

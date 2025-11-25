@@ -6,7 +6,7 @@
  */
 
 import { useState, useMemo } from 'react';
-import { ScrollView, StyleSheet, TouchableOpacity, View, RefreshControl } from 'react-native';
+import { ScrollView, StyleSheet, TouchableOpacity, View, RefreshControl, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -14,7 +14,7 @@ import { CustomHeader } from '@/components/custom-header';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { router } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
-import { WardrobeFilterModal, type WardrobeFilters } from '@/components/home/WardrobeFilterModal';
+import { WardrobeFilterModal, type WardrobeFilters } from '@/components/wardrobe/WardrobeFilterModal';
 import {
     WardrobeCarousel,
     FeaturedWardrobeItem,
@@ -26,6 +26,9 @@ import {
 } from '@/components/wardrobe';
 import { formatLastWorn } from '@/utils/wardrobe';
 import { useWardrobeItems } from '@/api/wardrobe/queries';
+import { updateWardrobeItem, markAsWorn } from '@/api/wardrobe/services';
+import { queryKeys } from '@/api/utils/query-keys';
+import { useQueryClient } from '@tanstack/react-query';
 import type { WardrobeItemResponse } from '@/api/wardrobe/types';
 import {
     FeaturedItemSkeleton,
@@ -44,7 +47,7 @@ const EmptyWardrobeState: React.FC = () => {
     const tintColor = useThemeColor({}, 'tint');
 
     const handleAddFirstItem = () => {
-        router.push('/wardrobe/add-item');
+        router.push('/wardrobe/manage-item');
     };
 
     return (
@@ -85,6 +88,13 @@ export default function WardrobeScreen() {
     const colorScheme = useColorScheme();
     const isDark = colorScheme === 'dark';
     const fabIconColor = isDark ? '#000' : 'white';
+    const queryClient = useQueryClient();
+
+    // Track which planned items are being converted to worn
+    const [convertingPlannedItems, setConvertingPlannedItems] = useState<Set<string>>(new Set());
+
+    // Track which items are being updated to show loading states
+    const [updatingItems, setUpdatingItems] = useState<Set<string>>(new Set());
 
     // Filter state
     const [showFilterModal, setShowFilterModal] = useState(false);
@@ -246,8 +256,8 @@ export default function WardrobeScreen() {
         const groups: Record<string, WardrobeItemCardType[]> = {};
 
         wardrobeItems.forEach((item) => {
-            // Only group clean items; worn items go into their own section
-            // Also exclude "processing" category items
+            // Only group clean items (exclude planned, worn, dirty, and processing)
+            // Planned items should be shown separately or filtered out
             if (item.status === 'clean' && item.category !== 'processing') {
                 const category = item.category.toLowerCase().trim(); // Normalize
                 if (!groups[category]) {
@@ -267,6 +277,7 @@ export default function WardrobeScreen() {
 
     const wornItems = wardrobeItems.filter((item) => item.status === 'worn');
     const dirtyItems = wardrobeItems.filter((item) => item.status === 'dirty');
+    const plannedItems = wardrobeItems.filter((item) => item.status === 'planned');
 
     // Featured item (first item from largest category)
     const featuredItem =
@@ -279,6 +290,10 @@ export default function WardrobeScreen() {
 
     const handleSearchPress = () => {
         noop();
+    };
+
+    const handleItemPress = (itemId: string | number) => {
+        router.push(`/wardrobe/item_detail?itemId=${itemId}`);
     };
 
     const handleNotificationPress = () => {
@@ -304,12 +319,97 @@ export default function WardrobeScreen() {
         setFilters(newFilters);
     };
 
-    const handleViewAll = (_category: string) => {
-        noop(); // TODO: Navigate to category view when route exists
+    /**
+     * Handle "View All" button press
+     * Navigates to category view screen
+     * 
+     * @param category - The category to view (e.g., 'tops', 'bottoms', 'recent')
+     */
+    const handleViewAll = (category: string) => {
+        router.push(`/wardrobe/category?category=${encodeURIComponent(category)}`);
     };
 
-    const handleStatusChange = (_itemId: string, _newStatus: 'clean' | 'worn' | 'dirty') => {
-        noop();
+    /**
+     * Handle status change for wardrobe items
+     * Updates item status and refreshes the wardrobe list
+     * 
+     * @param itemId - The ID of the item to update
+     * @param newStatus - The new status to set ('clean' | 'worn' | 'dirty' | 'planned')
+     */
+    const handleStatusChange = async (itemId: string, newStatus: 'clean' | 'worn' | 'dirty' | 'planned') => {
+        // Prevent duplicate updates
+        if (updatingItems.has(itemId)) {
+            return;
+        }
+
+        // Add item to updating set
+        setUpdatingItems((prev) => new Set(prev).add(itemId));
+
+        try {
+            // Update the item status
+            await updateWardrobeItem(itemId, { status: newStatus });
+
+            // Invalidate queries to refresh the wardrobe list
+            queryClient.invalidateQueries({ queryKey: queryKeys.wardrobe.itemById(itemId) });
+            queryClient.invalidateQueries({ queryKey: queryKeys.wardrobe.all() });
+
+            // Show success feedback (optional - can be removed if too noisy)
+            // The UI will update automatically via cache invalidation
+        } catch (error) {
+            console.error('Failed to update item status:', error);
+            Alert.alert(
+                'Update Failed',
+                error instanceof Error ? error.message : 'Unable to update item status. Please try again.'
+            );
+        } finally {
+            // Remove item from updating set
+            setUpdatingItems((prev) => {
+                const next = new Set(prev);
+                next.delete(itemId);
+                return next;
+            });
+        }
+    };
+
+    /**
+     * Handle converting planned items to worn
+     * Uses markAsWorn endpoint which converts planned → worn and tracks wear_count
+     * 
+     * @param itemId - The ID of the planned item to mark as worn
+     */
+    const handleMarkPlannedAsWorn = async (itemId: string) => {
+        // Prevent duplicate updates
+        if (convertingPlannedItems.has(itemId)) {
+            return;
+        }
+
+        // Add item to converting set
+        setConvertingPlannedItems((prev) => new Set(prev).add(itemId));
+
+        try {
+            // Use markAsWorn endpoint which converts planned → worn and increments wear_count
+            await markAsWorn(itemId);
+
+            // Invalidate queries to refresh the wardrobe list
+            queryClient.invalidateQueries({ queryKey: queryKeys.wardrobe.itemById(itemId) });
+            queryClient.invalidateQueries({ queryKey: queryKeys.wardrobe.all() });
+
+            // Show success feedback
+            Alert.alert('Success!', 'Item marked as worn and added to your wear history.');
+        } catch (error) {
+            console.error('Failed to mark planned item as worn:', error);
+            Alert.alert(
+                'Update Failed',
+                error instanceof Error ? error.message : 'Unable to mark item as worn. Please try again.'
+            );
+        } finally {
+            // Remove item from converting set
+            setConvertingPlannedItems((prev) => {
+                const next = new Set(prev);
+                next.delete(itemId);
+                return next;
+            });
+        }
     };
 
     const handleRefresh = async () => {
@@ -370,7 +470,7 @@ export default function WardrobeScreen() {
                         />
 
                         {/* Today's Outfit CTA */}
-                        <TodayOutfitCTA onPress={noop} />
+                        <TodayOutfitCTA onPress={() => router.push('/wardrobe/todays_outfit')} />
 
                         {isDataLoading ? (
                             <>
@@ -401,8 +501,24 @@ export default function WardrobeScreen() {
                                 {/* Featured Item */}
                                 {featuredItem?.imageUrl && (
                                     <View style={styles.featuredSection}>
-                                        <FeaturedWardrobeItem item={featuredItem} />
+                                        <FeaturedWardrobeItem
+                                            item={featuredItem}
+                                            onPress={() => handleItemPress(featuredItem.id)}
+                                        />
                                     </View>
+                                )}
+
+                                {/* Planned Items Section - Show first as it's most actionable and time-sensitive for today */}
+                                {plannedItems.length > 0 && (
+                                    <StatusGrid
+                                        title="Planned for Today"
+                                        subtitle="Mark as worn when you're wearing them"
+                                        items={plannedItems}
+                                        onStatusChange={handleStatusChange}
+                                        onItemPress={handleItemPress}
+                                        updatingItems={convertingPlannedItems}
+                                        onMarkAsWorn={handleMarkPlannedAsWorn}
+                                    />
                                 )}
 
                                 {/* Recently Added */}
@@ -412,7 +528,8 @@ export default function WardrobeScreen() {
                                         items={recentItems}
                                         onViewAll={() => handleViewAll('recent')}
                                         formatLastWorn={formatLastWorn}
-                                        style={!featuredItem ? { marginTop: 24 } : undefined}
+                                        style={!featuredItem && plannedItems.length === 0 ? { marginTop: 24 } : undefined}
+                                        onItemPress={handleItemPress}
                                     />
                                 )}
 
@@ -435,6 +552,7 @@ export default function WardrobeScreen() {
                                             items={items}
                                             onViewAll={() => handleViewAll(category)}
                                             formatLastWorn={formatLastWorn}
+                                            onItemPress={handleItemPress}
                                         />
                                     );
                                 })}
@@ -445,6 +563,8 @@ export default function WardrobeScreen() {
                                     subtitle="Clean these items to use in outfit recommendations"
                                     items={wornItems}
                                     onStatusChange={handleStatusChange}
+                                    onItemPress={handleItemPress}
+                                    updatingItems={updatingItems}
                                 />
 
                                 {/* Dirty Items Section */}
@@ -453,6 +573,8 @@ export default function WardrobeScreen() {
                                     subtitle="Mark as clean after washing"
                                     items={dirtyItems}
                                     onStatusChange={handleStatusChange}
+                                    onItemPress={handleItemPress}
+                                    updatingItems={updatingItems}
                                 />
                             </>
                         )}
@@ -464,7 +586,7 @@ export default function WardrobeScreen() {
             {!isDataLoading && allWardrobeItems.length > 0 && (
                 <TouchableOpacity
                     style={[styles.fab, { backgroundColor: tintColor }]}
-                    onPress={() => router.push('/wardrobe/add-item')}
+                    onPress={() => router.push('/wardrobe/manage-item')}
                 >
                     <IconSymbol name="plus" size={24} color={fabIconColor} />
                 </TouchableOpacity>

@@ -9,6 +9,7 @@ interface ImageViewModalProps {
     visible: boolean;
     imageUrl: string | null;
     onClose: () => void;
+    title?: string; // Optional custom title
 }
 
 /**
@@ -21,6 +22,7 @@ export function ImageViewModal({
     visible,
     imageUrl,
     onClose,
+    title = 'Processed Image',
 }: ImageViewModalProps) {
     const backgroundColor = useThemeColor({}, 'background');
     const borderColor = useThemeColor({}, 'tabIconDefault');
@@ -44,7 +46,7 @@ export function ImageViewModal({
                         <IconSymbol name="xmark" size={24} color={borderColor} />
                     </TouchableOpacity>
                     <ThemedText type="title" style={styles.modalTitle}>
-                        Processed Image
+                        {title}
                     </ThemedText>
                     <View style={styles.closeButton} />
                 </View>

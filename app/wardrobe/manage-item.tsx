@@ -4,7 +4,7 @@ import { ThemedText } from '@/components/themed-text';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { CustomHeader } from '@/components/custom-header';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { ImageUploadSection } from '@/components/wardrobe/ImageUploadSection';
 import { ItemDetailsInput } from '@/components/wardrobe/ItemDetailsInput';
 import { CategorySelector } from '@/components/wardrobe/CategorySelector';
@@ -12,11 +12,18 @@ import { ColorSelector } from '@/components/wardrobe/ColorSelector';
 import { TagInput } from '@/components/wardrobe/TagInput';
 import { useWardrobeForm } from '@/hooks/wardrobe/useWardrobeForm';
 import { useWardrobeImageProcessing } from '@/hooks/wardrobe/useWardrobeImageProcessing';
-import { useCreateWardrobeItem } from '@/api/wardrobe/queries';
+import { useCreateWardrobeItem, useUpdateWardrobeItem, useWardrobeItem } from '@/api/wardrobe/queries';
 import { queryKeys } from '@/api/utils/query-keys';
 import { ApiError } from '@/api/client';
+import { useEffect, useMemo } from 'react';
 
-const AddItemScreen = () => {
+/**
+ * Wardrobe Item Management Screen
+ * Handles both creating new wardrobe items and editing existing ones
+ * 
+ * @see https://reactnative.dev/docs/scrollview - React Native ScrollView component
+ */
+const ManageWardrobeItemScreen = () => {
     const backgroundColor = useThemeColor({}, 'background');
     const tintColor = useThemeColor({}, 'tint');
     const colorScheme = useColorScheme();
@@ -24,13 +31,39 @@ const AddItemScreen = () => {
     const buttonTextColor = isDark ? '#000' : 'white';
     const activityIndicatorColor = isDark ? '#000' : 'white';
 
+    // Get itemId from route params for editing
+    const { itemId } = useLocalSearchParams<{ itemId?: string }>();
+    const isEditMode = !!itemId;
+
+    // Fetch existing item data when editing
+    const { data: existingItem, isLoading: isLoadingItem } = useWardrobeItem(itemId || '');
+
+    // Map existing item to form data format
+    const initialFormData = useMemo(() => {
+        if (!existingItem) return undefined;
+        return {
+            title: existingItem.title || '',
+            category: existingItem.category || '',
+            colors: existingItem.colors || [],
+            tags: existingItem.tags || [],
+            imageUrl: existingItem.image_url || null,
+        };
+    }, [existingItem]);
+
     const {
         formData,
         updateField,
         updateForm,
         addTag,
         removeTag,
-    } = useWardrobeForm();
+    } = useWardrobeForm(initialFormData);
+
+    // Update form when item data loads
+    useEffect(() => {
+        if (existingItem && initialFormData) {
+            updateForm(initialFormData);
+        }
+    }, [existingItem, initialFormData, updateForm]);
 
     const {
         handleSelectPhoto,
@@ -52,7 +85,11 @@ const AddItemScreen = () => {
         },
     });
 
-    const { mutateAsync: createWardrobeItem, isPending: isCreating, queryClient } = useCreateWardrobeItem();
+    const { mutateAsync: createWardrobeItem, isPending: isCreating, queryClient: createQueryClient } = useCreateWardrobeItem();
+    const { mutateAsync: updateWardrobeItem, isPending: isUpdating, queryClient: updateQueryClient } = useUpdateWardrobeItem(itemId || '');
+
+    const isSaving = isCreating || isUpdating;
+    const queryClient = isEditMode ? updateQueryClient : createQueryClient;
 
     const handleBackPress = () => {
         router.back();
@@ -85,6 +122,7 @@ const AddItemScreen = () => {
     /**
      * Handle saving wardrobe item
      * Transforms form data to API request format and calls the mutation
+     * Supports both creating new items and updating existing ones
      */
     const handleSave = async () => {
         // Validate form
@@ -103,31 +141,44 @@ const AddItemScreen = () => {
 
             // Transform form data to API request format
             // API expects: image_url (snake_case) and status field
-            const requestPayload = {
-                title: formData.title.trim(),
-                category: formData.category.trim(),
-                colors: formData.colors,
-                tags: formData.tags,
-                image_url: formData.imageUrl, // API uses snake_case, validated above
-                status: 'clean' as const, // Default status
-            };
-
-            console.log('[Wardrobe] Creating wardrobe item:', requestPayload);
-
-            // Call the mutation
-            const response = await createWardrobeItem(requestPayload);
-
-            console.log('[Wardrobe] Wardrobe item created successfully:', response);
+            if (isEditMode) {
+                // For updates, status is optional
+                const updatePayload = {
+                    title: formData.title.trim(),
+                    category: formData.category.trim(),
+                    colors: formData.colors,
+                    tags: formData.tags,
+                    image_url: formData.imageUrl, // API uses snake_case, validated above
+                };
+                console.log('[Wardrobe] Updating wardrobe item:', itemId, updatePayload);
+                await updateWardrobeItem(updatePayload);
+                console.log('[Wardrobe] Wardrobe item updated successfully');
+            } else {
+                // For creates, status is required
+                const createPayload = {
+                    title: formData.title.trim(),
+                    category: formData.category.trim(),
+                    colors: formData.colors,
+                    tags: formData.tags,
+                    image_url: formData.imageUrl, // API uses snake_case, validated above
+                    status: 'clean' as const,
+                };
+                console.log('[Wardrobe] Creating wardrobe item:', createPayload);
+                await createWardrobeItem(createPayload);
+                console.log('[Wardrobe] Wardrobe item created successfully');
+            }
 
             // Invalidate wardrobe queries to refetch the list
-            // This ensures the new item appears in the wardrobe screen
             queryClient.invalidateQueries({ queryKey: queryKeys.wardrobe.items() });
             queryClient.invalidateQueries({ queryKey: queryKeys.wardrobe.all() });
+            if (isEditMode && itemId) {
+                queryClient.invalidateQueries({ queryKey: queryKeys.wardrobe.itemById(itemId) });
+            }
 
             // Show success message
             Alert.alert(
                 'Success',
-                'Wardrobe item added successfully!',
+                isEditMode ? 'Wardrobe item updated successfully!' : 'Wardrobe item added successfully!',
                 [
                     {
                         text: 'OK',
@@ -139,10 +190,10 @@ const AddItemScreen = () => {
                 ]
             );
         } catch (error) {
-            console.error('[Wardrobe] Failed to create wardrobe item:', error);
+            console.error(`[Wardrobe] Failed to ${isEditMode ? 'update' : 'create'} wardrobe item:`, error);
 
             // Handle API errors with user-friendly messages
-            let errorMessage = 'Unable to save wardrobe item. Please try again.';
+            let errorMessage = `Unable to ${isEditMode ? 'update' : 'save'} wardrobe item. Please try again.`;
             if (error instanceof ApiError) {
                 errorMessage = error.message;
             } else if (error instanceof Error) {
@@ -153,12 +204,25 @@ const AddItemScreen = () => {
         }
     };
 
-    const isProcessing = Boolean(processingStage) || isUploadingImage || isCreating;
+    const isProcessing = Boolean(processingStage) || isUploadingImage || isSaving || isLoadingItem;
     const showShimmer = false; // Can be controlled by loading state
+
+    // Show loading state while fetching item data for editing
+    if (isEditMode && isLoadingItem) {
+        return (
+            <SafeAreaView style={[styles.container, { backgroundColor }]}>
+                <CustomHeader title="Edit Item" showBackButton={true} onBackPress={handleBackPress} />
+                <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color={tintColor} />
+                    <ThemedText style={styles.loadingText}>Loading item details...</ThemedText>
+                </View>
+            </SafeAreaView>
+        );
+    }
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor }]}>
-            <CustomHeader title="Add Item" showBackButton={true} onBackPress={handleBackPress} />
+            <CustomHeader title={isEditMode ? "Edit Item" : "Add Item"} showBackButton={true} onBackPress={handleBackPress} />
 
             <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
                 <ImageUploadSection
@@ -207,11 +271,11 @@ const AddItemScreen = () => {
                     onPress={handleSave}
                     disabled={isProcessing}
                 >
-                    {isUploadingImage || isCreating ? (
+                    {isUploadingImage || isSaving ? (
                         <ActivityIndicator color={activityIndicatorColor} />
                     ) : (
                         <ThemedText style={[styles.saveButtonText, { color: buttonTextColor }]}>
-                            Add to Wardrobe
+                            {isEditMode ? 'Update Item' : 'Add to Wardrobe'}
                         </ThemedText>
                     )}
                 </TouchableOpacity>
@@ -222,7 +286,7 @@ const AddItemScreen = () => {
     );
 };
 
-export default AddItemScreen;
+export default ManageWardrobeItemScreen;
 
 const styles = StyleSheet.create({
     container: {
@@ -246,4 +310,15 @@ const styles = StyleSheet.create({
     bottomSpacing: {
         height: 40,
     },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 40,
+    },
+    loadingText: {
+        marginTop: 16,
+        fontSize: 16,
+    },
 });
+

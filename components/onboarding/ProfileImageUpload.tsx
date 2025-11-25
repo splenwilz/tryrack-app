@@ -1,4 +1,4 @@
-import { View, TouchableOpacity, Image, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, TouchableOpacity, Image, StyleSheet, ActivityIndicator, useColorScheme } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 
@@ -27,6 +27,8 @@ export function ProfileImageUpload({
     iconColor,
 }: ProfileImageUploadProps) {
     const isProfile = type === 'profile';
+    const colorScheme = useColorScheme();
+    const isDark = colorScheme === 'dark';
 
     return (
         <TouchableOpacity
@@ -59,7 +61,7 @@ export function ProfileImageUpload({
             )}
             {!isUploading && imageUri && (
                 <View style={[styles.editBadge, { backgroundColor: tintColor }]}>
-                    <IconSymbol name="pencil" size={16} color="white" />
+                    <IconSymbol name="pencil" size={16} color={isDark ? "#000" : "#fff"} />
                 </View>
             )}
         </TouchableOpacity>

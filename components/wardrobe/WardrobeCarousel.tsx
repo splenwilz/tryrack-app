@@ -19,6 +19,7 @@ interface WardrobeCarouselProps {
     onStatusChange?: (itemId: string, newStatus: 'clean' | 'worn' | 'dirty') => void;
     formatLastWorn?: (lastWornAt?: string) => string | null;
     style?: object;
+    onItemPress?: (itemId: string | number) => void;
 }
 
 export const WardrobeCarousel: React.FC<WardrobeCarouselProps> = ({
@@ -27,6 +28,7 @@ export const WardrobeCarousel: React.FC<WardrobeCarouselProps> = ({
     onViewAll,
     formatLastWorn,
     style,
+    onItemPress,
 }) => {
     const tintColor = useThemeColor({}, 'tint');
 
@@ -54,6 +56,7 @@ export const WardrobeCarousel: React.FC<WardrobeCarouselProps> = ({
                         key={item.id}
                         item={item}
                         formatLastWorn={formatLastWorn}
+                        onPress={onItemPress ? () => onItemPress(item.id) : undefined}
                     />
                 ))}
             </ScrollView>
