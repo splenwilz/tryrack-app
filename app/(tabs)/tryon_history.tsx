@@ -24,9 +24,27 @@ import { useThemeColor } from '@/hooks/use-theme-color';
 import { CustomHeader } from '@/components/custom-header';
 import { useGetVirtualTryOns } from '@/api/wardrobe/queries';
 import type { VirtualTryOnHistoryItem } from '@/api/wardrobe/types';
+import { ShimmerPlaceholder } from '@/components/ShimmerPlaceholder';
 
 const { width } = Dimensions.get('window');
 const ITEM_WIDTH = (width - 48) / 2; // 2 columns with padding
+
+/**
+ * Skeleton component for try-on history item
+ */
+const TryOnHistoryItemSkeleton: React.FC = () => {
+    const cardBg = useThemeColor({ light: '#ffffff', dark: '#1c1c1e' }, 'background');
+
+    return (
+        <View style={[styles.card, { backgroundColor: cardBg }]}>
+            <ShimmerPlaceholder width="100%" height={ITEM_WIDTH * 1.4} borderRadius={0} />
+            <View style={styles.cardFooter}>
+                <ShimmerPlaceholder width="60%" height={14} borderRadius={4} />
+                <View style={{ width: 20 }} />
+            </View>
+        </View>
+    );
+};
 
 export default function TryOnHistoryScreen() {
     const router = useRouter();
@@ -41,6 +59,9 @@ export default function TryOnHistoryScreen() {
         isFetching,
         refetch
     } = useGetVirtualTryOns();
+
+    // Check if we're loading (including initial fetch with placeholder data)
+    const isDataLoading = isLoading || (isFetching && tryons.length === 0);
 
     // Theme colors
     const backgroundColor = useThemeColor({}, 'background');
@@ -91,7 +112,10 @@ export default function TryOnHistoryScreen() {
         if (diffDays === 0) return 'Today';
         if (diffDays === 1) return 'Yesterday';
         if (diffDays < 7) return `${diffDays} days ago`;
-        if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
+        if (diffDays < 30) {
+            const weeks = Math.floor(diffDays / 7);
+            return `${weeks} ${weeks === 1 ? 'week' : 'weeks'} ago`;
+        }
         return date.toLocaleDateString();
     }, []);
 
@@ -145,24 +169,25 @@ export default function TryOnHistoryScreen() {
         </View>
     );
 
-    // Show loading state for initial fetch
-    if (isLoading && tryons.length === 0) {
+    // Render loading skeletons
+    const renderLoadingSkeletons = () => {
         return (
-            <SafeAreaView style={[styles.container, { backgroundColor }]}>
-                <CustomHeader
-                    title="My Try-Ons"
-                    showBackButton={false}
-                    onSearchPress={handleSearchPress}
-                    onNotificationPress={handleNotificationPress}
-                    notificationCount={0}
-                />
-                <View style={[styles.centered, { flex: 1 }]}>
-                    <ActivityIndicator size="large" color={tintColor} />
-                    <ThemedText style={[styles.loadingText, { color: textColor }]}>Loading your try-ons...</ThemedText>
+            <View style={styles.listContent}>
+                <View style={styles.row}>
+                    <TryOnHistoryItemSkeleton />
+                    <TryOnHistoryItemSkeleton />
                 </View>
-            </SafeAreaView>
+                <View style={styles.row}>
+                    <TryOnHistoryItemSkeleton />
+                    <TryOnHistoryItemSkeleton />
+                </View>
+                <View style={styles.row}>
+                    <TryOnHistoryItemSkeleton />
+                    <TryOnHistoryItemSkeleton />
+                </View>
+            </View>
         );
-    }
+    };
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor }]}>
@@ -206,23 +231,27 @@ export default function TryOnHistoryScreen() {
             </View>
 
             {/* Grid */}
-            <FlatList
-                data={filteredTryons}
-                renderItem={renderItem}
-                keyExtractor={(item) => item.id.toString()}
-                numColumns={2}
-                contentContainerStyle={styles.listContent}
-                columnWrapperStyle={styles.row}
-                showsVerticalScrollIndicator={false}
-                ListEmptyComponent={renderEmptyState}
-                refreshControl={
-                    <RefreshControl
-                        refreshing={refreshing}
-                        onRefresh={handleRefresh}
-                        tintColor={tintColor}
-                    />
-                }
-            />
+            {isDataLoading ? (
+                renderLoadingSkeletons()
+            ) : (
+                <FlatList
+                    data={filteredTryons}
+                    renderItem={renderItem}
+                    keyExtractor={(item) => item.id.toString()}
+                    numColumns={2}
+                    contentContainerStyle={styles.listContent}
+                    columnWrapperStyle={styles.row}
+                    showsVerticalScrollIndicator={false}
+                    ListEmptyComponent={renderEmptyState}
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={refreshing}
+                            onRefresh={handleRefresh}
+                            tintColor={tintColor}
+                        />
+                    }
+                />
+            )}
         </SafeAreaView>
     );
 }

@@ -74,7 +74,7 @@ export function VirtualTryOnCompatibleItems({
                             }}
                         >
                             <Image
-                                source={{ uri: suggestion.image_clean || suggestion.image_original || suggestion.imageUrl }}
+                                source={{ uri: suggestion.image_clean || suggestion.image_original || suggestion.imageUrl || undefined }}
                                 style={styles.image}
                             />
                             <View style={styles.info}>

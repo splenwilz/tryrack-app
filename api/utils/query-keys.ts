@@ -84,5 +84,26 @@ export const queryKeys = {
      */
     byId: (id: number) => ['virtual-try-on', id] as const,
   },
+
+  /**
+   * Catalog-related query keys
+   */
+  catalog: {
+    /**
+     * All catalog queries
+     */
+    all: () => ['catalog'] as const,
+
+    /**
+     * Catalog products list with optional filters
+     */
+    products: (options?: { category?: string | null; brand?: string | null; status?: string | null; skip?: number; limit?: number }) =>
+      ['catalog', 'products', options] as const,
+
+    /**
+     * Catalog product by ID
+     */
+    productById: (productId: string) => ['catalog', 'products', productId] as const,
+  },
 } as const;
 

@@ -28,20 +28,20 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="explore"
-        options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
-        }}
-      />
-      {/* Wardrobe tab - always visible, but redirects to signin if not authenticated */}
-      <Tabs.Screen
         name="wardrobe"
         options={{
           title: 'Wardrobe',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="tshirt.fill" color={color} />,
         }}
       />
+      <Tabs.Screen
+        name="explore"
+        options={{
+          title: 'Shop',
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="bag.fill" color={color} />,
+        }}
+      />
+
       <Tabs.Screen
         name="tryon_history"
         options={{

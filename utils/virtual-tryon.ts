@@ -8,16 +8,23 @@
  * These are checked in real-time as the user types
  */
 const ITEM_ADDITION_KEYWORDS = [
+    // Action verbs that clearly indicate adding garments
     'add',
     'include',
-    'with',
-    'also',
-    'plus',
-    'and',
     'accessorize',
+    'layer',
+    'put on',
+    'wear',
+    'wearing',
+    'throw on',
+    'pair with',
+    'match with',
+    // Common garment nouns
     'accessories',
     'shoe',
     'shoes',
+    'boot',
+    'boots',
     'belt',
     'hat',
     'bag',
@@ -26,9 +33,9 @@ const ITEM_ADDITION_KEYWORDS = [
     'scarf',
     'gloves',
     'sunglasses',
-    'put on',
-    'wear',
-    'wearing',
+    'coat',
+    'jacket',
+    'blazer',
 ];
 
 /**

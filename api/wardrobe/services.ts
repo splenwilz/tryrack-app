@@ -120,7 +120,7 @@ async function extractMetadata(
     base64Image: string,
     mimeType: string
 ): Promise<WardrobeMetadata> {
-    const visionModel = ai.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
+    const visionModel = ai.getGenerativeModel({ model: "gemini-2.0-flash" });
 
     const prompt = [
         { text: WARDROBE_EXTRACTION_PROMPT },
@@ -575,7 +575,6 @@ export async function getWardrobeItem(id: string): Promise<WardrobeItemResponse>
 }
 
 export async function updateWardrobeItem(id: string, request: UpdateWardrobeItemRequest): Promise<WardrobeItemResponse> {
-    console.log('Updating wardrobe item:', id, request);
     const response = await apiClient<WardrobeItemResponse>(`/api/v1/wardrobe/${id}`, {
         method: "PATCH",
         body: JSON.stringify(request),

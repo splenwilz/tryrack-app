@@ -76,7 +76,7 @@ Rules: category=lowercase singular (blazer not Blazer, sneaker not sneakers). co
         // Step 1: Extract metadata using vision model
         console.log("🔍 Step 1: Extracting metadata...");
         const metadataStartTime = Date.now();
-        const visionModel = ai.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
+        const visionModel = ai.getGenerativeModel({ model: "gemini-2.0-flash" });
         const metadataResult = await visionModel.generateContent({
             contents: [{ role: "user", parts: prompt }],
         });

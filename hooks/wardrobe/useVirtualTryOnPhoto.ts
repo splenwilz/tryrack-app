@@ -12,7 +12,7 @@ import { useGetProfile } from '@/api/profile/queries';
 
 export function useVirtualTryOnPhoto() {
     const { data: profile, isLoading: isLoadingProfile, isFetching: isFetchingProfile } = useGetProfile();
-    
+
     const [userPhoto, setUserPhoto] = useState<string | null>(null);
     const [hasUsedExistingPhoto, setHasUsedExistingPhoto] = useState(false);
     const [hasCheckedProfile, setHasCheckedProfile] = useState(false);
@@ -50,7 +50,7 @@ export function useVirtualTryOnPhoto() {
                             }
 
                             const result = await ImagePicker.launchCameraAsync({
-                                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                                mediaTypes: 'images',
                                 allowsEditing: false,
                                 quality: 0.8,
                             });
@@ -78,7 +78,7 @@ export function useVirtualTryOnPhoto() {
                             }
 
                             const result = await ImagePicker.launchImageLibraryAsync({
-                                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                                mediaTypes: 'images',
                                 quality: 0.8,
                                 allowsEditing: false,
                             });

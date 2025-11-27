@@ -19,6 +19,7 @@ export default function RootLayout() {
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
         <Stack>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="(boutique_tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
           <Stack.Screen name="auth/signup" options={{ headerShown: false }} />
           <Stack.Screen name="auth/signin" options={{ headerShown: false }} />
@@ -36,6 +37,7 @@ export default function RootLayout() {
           <Stack.Screen name="wardrobe/virtual_tryon" options={{ headerShown: false }} />
           <Stack.Screen name="wardrobe/tryon_detail" options={{ headerShown: false }} />
           <Stack.Screen name="tryon_history" options={{ headerShown: false }} />
+          <Stack.Screen name="catalog/category" options={{ headerShown: false }} />
         </Stack>
         <StatusBar style="auto" />
       </ThemeProvider>

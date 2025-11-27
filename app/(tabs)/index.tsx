@@ -48,6 +48,9 @@ export default function HomeScreen() {
         <Link href="/wardrobe/virtual_tryon">
           <ThemedText type="subtitle">Virtual Try-on</ThemedText>
         </Link>
+        <Link href="/(boutique_tabs)/dashboard">
+          <ThemedText type="subtitle">Boutique Dashboard</ThemedText>
+        </Link>
         <ThemedText>
           Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
           Press{' '}

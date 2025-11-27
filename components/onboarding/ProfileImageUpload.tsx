@@ -72,6 +72,7 @@ const styles = StyleSheet.create({
     imageContainer: {
         alignItems: 'center',
         marginBottom: 8,
+        position: 'relative',
     },
     profileImage: {
         width: 120,

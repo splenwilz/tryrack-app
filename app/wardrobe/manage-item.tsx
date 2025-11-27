@@ -36,7 +36,10 @@ const ManageWardrobeItemScreen = () => {
     const isEditMode = !!itemId;
 
     // Fetch existing item data when editing
-    const { data: existingItem, isLoading: isLoadingItem } = useWardrobeItem(itemId || '');
+    // const { data: existingItem, isLoading: isLoadingItem } = useWardrobeItem(itemId || '');
+    const { data: existingItem, isLoading: isLoadingItem } = useWardrobeItem(itemId || '', {
+        enabled: isEditMode,
+    });
 
     // Map existing item to form data format
     const initialFormData = useMemo(() => {
@@ -149,6 +152,7 @@ const ManageWardrobeItemScreen = () => {
                     colors: formData.colors,
                     tags: formData.tags,
                     image_url: formData.imageUrl, // API uses snake_case, validated above
+                    status: existingItem?.status ?? 'clean',
                 };
                 console.log('[Wardrobe] Updating wardrobe item:', itemId, updatePayload);
                 await updateWardrobeItem(updatePayload);

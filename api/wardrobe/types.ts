@@ -4,7 +4,7 @@ import { z } from "zod";
  * Wardrobe item metadata extracted from image
  */
 export const WardrobeMetadataSchema = z.object({
-    title: z.string().max(50),
+    title: z.string().max(30),
     category: z.string(),
     colors: z.array(z.string()),
     tags: z.array(z.string()),
@@ -35,7 +35,7 @@ export const UpdateWardrobeItemRequestSchema = z.object({
     colors: z.array(z.string()).optional(),
     tags: z.array(z.string()).optional(),
     image_url: z.string().optional(),
-    status: z.enum(["clean", "dirty", "worn", "planned"]).default("clean").optional(),
+    status: z.enum(["clean", "dirty", "worn", "planned"]).optional().default("clean"),
 })
 
 export const WardrobeItemResponseSchema = CreateWardrobeItemRequestSchema.extend({

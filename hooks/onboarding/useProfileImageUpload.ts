@@ -145,7 +145,7 @@ export function useProfileImageUpload(
                                 }
 
                                 const result = await ImagePicker.launchCameraAsync({
-                                    mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                                    mediaTypes: "images",
                                     allowsEditing: isProfile,
                                     ...(isProfile && { aspect: [1, 1] }),
                                     quality: 0.7,
