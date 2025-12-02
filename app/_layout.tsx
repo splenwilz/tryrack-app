@@ -1,8 +1,10 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 
+import { queryClient } from '@/api/query-client';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export const unstable_settings = {
@@ -13,12 +15,38 @@ export default function RootLayout() {
   const colorScheme = useColorScheme();
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-      </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+        <Stack>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="(boutique_tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+          <Stack.Screen name="auth/signup" options={{ headerShown: false }} />
+          <Stack.Screen name="auth/signin" options={{ headerShown: false }} />
+          <Stack.Screen name="auth/verify-email" options={{ headerShown: false }} />
+          <Stack.Screen name="auth/forgot-password" options={{ headerShown: false }} />
+          <Stack.Screen name="auth/reset-password" options={{ headerShown: false }} />
+          <Stack.Screen name="terms-of-service" options={{ headerShown: false }} />
+          <Stack.Screen name="privacy-policy" options={{ headerShown: false }} />
+          <Stack.Screen name="onboarding/index" options={{ headerShown: false }} />
+          <Stack.Screen name="onboarding/profile-completion" options={{ headerShown: false }} />
+          <Stack.Screen name="onboarding/boutique-profile" options={{ headerShown: false }} />
+          <Stack.Screen name="wardrobe/manage-item" options={{ headerShown: false }} />
+          <Stack.Screen name="wardrobe/item_detail" options={{ headerShown: false }} />
+          <Stack.Screen name="wardrobe/category" options={{ headerShown: false }} />
+          <Stack.Screen name="wardrobe/todays_outfit" options={{ headerShown: false }} />
+          <Stack.Screen name="wardrobe/virtual_tryon" options={{ headerShown: false }} />
+          <Stack.Screen name="wardrobe/tryon_detail" options={{ headerShown: false }} />
+          <Stack.Screen name="tryon_history" options={{ headerShown: false }} />
+          <Stack.Screen name="catalog/category" options={{ headerShown: false }} />
+          <Stack.Screen name="orders/category" options={{ headerShown: false }} />
+          <Stack.Screen name="shop/looks" options={{ headerShown: false }} />
+          <Stack.Screen name="shop/category" options={{ headerShown: false }} />
+          <Stack.Screen name="catalog/product_detail" options={{ headerShown: false }} />
+          <Stack.Screen name="catalog/look_detail" options={{ headerShown: false }} />
+        </Stack>
+        <StatusBar style="auto" />
+      </ThemeProvider>
+    </QueryClientProvider>
   );
 }

@@ -19,10 +19,38 @@ export default function HomeScreen() {
       }>
       <ThemedView style={styles.titleContainer}>
         <ThemedText type="title">Welcome!</ThemedText>
+        <Link href="/auth/signup">
+          <ThemedText type="subtitle">Sign Up</ThemedText>
+        </Link>
+        <Link href="/auth/verify-email">
+          <ThemedText type="subtitle">Verify Email</ThemedText>
+        </Link>
+
         <HelloWave />
       </ThemedView>
       <ThemedView style={styles.stepContainer}>
         <ThemedText type="subtitle">Step 1: Try it</ThemedText>
+        <Link href="/auth/signin">
+          <ThemedText type="subtitle">Sign In</ThemedText>
+        </Link>
+        <Link href="/auth/forgot-password">
+          <ThemedText type="subtitle">Forgot Password</ThemedText>
+        </Link>
+        <Link href="/auth/reset-password">
+          <ThemedText type="subtitle">Reset Password</ThemedText>
+        </Link>
+        <Link href="/onboarding">
+          <ThemedText type="subtitle">Onboarding</ThemedText>
+        </Link>
+        <Link href="/onboarding/profile-completion">
+          <ThemedText type="subtitle">Profile Completion</ThemedText>
+        </Link>
+        <Link href="/wardrobe/virtual_tryon">
+          <ThemedText type="subtitle">Virtual Try-on</ThemedText>
+        </Link>
+        <Link href="/(boutique_tabs)/dashboard">
+          <ThemedText type="subtitle">Boutique Dashboard</ThemedText>
+        </Link>
         <ThemedText>
           Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
           Press{' '}
