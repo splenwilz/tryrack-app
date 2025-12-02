@@ -233,7 +233,7 @@ export default function BoutiqueProductsScreen() {
 
     const handleRefresh = async () => {
         if (activeSection === 'products') {
-        await refetchProducts();
+            await refetchProducts();
         } else {
             await refetchLooks();
         }
@@ -506,40 +506,40 @@ export default function BoutiqueProductsScreen() {
             >
                 {activeSection === 'products' ? (
                     <>
-                {/* Filter Bar */}
-                <CatalogFilterBar
-                    hasActiveFilters={hasActiveFilters}
-                    activeFilterCount={activeFilterCount}
-                    onFilterPress={() => setShowFilterModal(true)}
-                    onClearFilters={handleClearFilters}
-                />
+                        {/* Filter Bar */}
+                        <CatalogFilterBar
+                            hasActiveFilters={hasActiveFilters}
+                            activeFilterCount={activeFilterCount}
+                            onFilterPress={() => setShowFilterModal(true)}
+                            onClearFilters={handleClearFilters}
+                        />
 
-                {/* Filter Summary */}
-                <FilterSummary
-                    hasActiveFilters={hasActiveFilters}
-                    filteredCount={filteredCount}
-                    totalCount={products.length}
-                    onClearFilters={handleClearFilters}
-                />
+                        {/* Filter Summary */}
+                        <FilterSummary
+                            hasActiveFilters={hasActiveFilters}
+                            filteredCount={filteredCount}
+                            totalCount={products.length}
+                            onClearFilters={handleClearFilters}
+                        />
 
-                {/* Sort Controls */}
-                <View style={styles.sortSection}>
-                    <ThemedText style={[styles.sortLabel, { color: iconColor }]}>Sort by:</ThemedText>
-                    <CatalogSortTabs options={sortOptions} value={sortBy} onChange={setSortBy} />
-                </View>
+                        {/* Sort Controls */}
+                        <View style={styles.sortSection}>
+                            <ThemedText style={[styles.sortLabel, { color: iconColor }]}>Sort by:</ThemedText>
+                            <CatalogSortTabs options={sortOptions} value={sortBy} onChange={setSortBy} />
+                        </View>
 
-                {productCards.length === 0 ? (
-                    <CatalogEmptyState />
-                ) : (
-                    <CatalogSections
-                        featuredProduct={featuredProduct}
-                        recentProducts={recentProducts}
-                        groupedByCategory={groupedByCategory}
-                        outOfStockProducts={outOfStockProducts}
-                        inactiveProducts={inactiveProducts}
-                        onItemPress={handleItemPress}
-                        onViewAll={handleViewAll}
-                    />
+                        {productCards.length === 0 ? (
+                            <CatalogEmptyState />
+                        ) : (
+                            <CatalogSections
+                                featuredProduct={featuredProduct}
+                                recentProducts={recentProducts}
+                                groupedByCategory={groupedByCategory}
+                                outOfStockProducts={outOfStockProducts}
+                                inactiveProducts={inactiveProducts}
+                                onItemPress={handleItemPress}
+                                onViewAll={handleViewAll}
+                            />
                         )}
                     </>
                 ) : (
