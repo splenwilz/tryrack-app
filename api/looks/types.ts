@@ -66,31 +66,6 @@ export type UpdateLookRequest = z.infer<typeof UpdateLookRequestSchema>;
 export type LookResponse = z.infer<typeof LookResponseSchema>;
 
 /**
- * Frontend Look type (for display)
- */
-export interface Look {
-    id: string;
-    title: string;
-    description: string;
-    imageUrl: string;
-    style: string;
-    items: {
-        id: string;
-        title: string;
-        category: string;
-        price: number;
-        imageUrl: string;
-    }[];
-    totalPrice: number;
-    boutique: {
-        id: string;
-        name: string;
-        logo: string;
-    };
-    isFeatured?: boolean;
-}
-
-/**
  * Request for generating a look image from selected products
  */
 export interface GenerateLookImageRequest {

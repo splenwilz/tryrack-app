@@ -2,7 +2,7 @@
  * Product Detail Screen
  * View a single product with full details and actions
  *
- * @see app/(boutique_tabs)/looks/detail.tsx - Similar pattern for looks
+ * @see app/catalog/look_detail.tsx - Similar pattern for looks
  */
 
 import React from 'react';
@@ -16,6 +16,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { CustomHeader } from '@/components/custom-header';
 import { useCatalogProduct, useDeleteCatalogProduct } from '@/api/catalog/queries';
 import { mapFromBackendResponse } from '@/utils/catalog';
+import { ApiError } from '@/api/client';
 
 export default function ProductDetailScreen() {
     const backgroundColor = useThemeColor({}, 'background');
@@ -92,7 +93,7 @@ export default function ProductDetailScreen() {
     // Show error state - don't redirect, just show error message
     if (error && !isLoading) {
         const errorMessage = error instanceof Error ? error.message : 'Failed to load product';
-        const isUnauthorized = errorMessage.includes('403') || errorMessage.includes('401') || errorMessage.includes('Unauthorized') || errorMessage.includes('Forbidden');
+        const isUnauthorized = error instanceof ApiError && (error.status === 401 || error.status === 403);
 
         return (
             <SafeAreaView style={[styles.container, { backgroundColor }]}>

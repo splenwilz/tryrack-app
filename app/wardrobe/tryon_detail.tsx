@@ -80,18 +80,7 @@ export default function TryOnDetailScreen() {
               // Success - navigate back (list will refresh automatically)
               router.back();
             } catch (error) {
-              // Check if error is ApiError with 403 status
-              // If backend returns 403 but deletion still happens, navigate back silently
-              if (error && typeof error === 'object' && 'status' in error) {
-                const apiError = error as { status: number; message: string };
-                if (apiError.status === 403) {
-                  // 403 but deletion might have succeeded - navigate back anyway
-                  // Don't show error since deletion appears to work
-                  router.back();
-                  return;
-                }
-              }
-              // For other errors, show the error message
+              // Show error message to user
               Alert.alert(
                 'Error',
                 error instanceof Error ? error.message : 'Failed to delete try-on. Please try again.',

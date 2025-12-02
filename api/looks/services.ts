@@ -55,18 +55,35 @@ async function readImageAsBase64(imageUri: string): Promise<{ data: string; mime
 
     // Handle remote URLs
     if (imageUri.startsWith('http://') || imageUri.startsWith('https://')) {
-        const response = await fetch(imageUri);
-        const blob = await response.blob();
-        const reader = new FileReader();
-        return new Promise((resolve, reject) => {
-            reader.onloadend = () => {
-                const base64 = reader.result as string;
-                const base64Data = base64.split(',')[1] || base64;
-                resolve({ data: base64Data, mimeType });
-            };
-            reader.onerror = reject;
-            reader.readAsDataURL(blob);
-        });
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+
+        try {
+            const response = await fetch(imageUri, { signal: controller.signal });
+            clearTimeout(timeoutId);
+
+            if (!response.ok) {
+                throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
+            }
+
+            const blob = await response.blob();
+            const reader = new FileReader();
+            return new Promise((resolve, reject) => {
+                reader.onloadend = () => {
+                    const base64 = reader.result as string;
+                    const base64Data = base64.split(',')[1] || base64;
+                    resolve({ data: base64Data, mimeType });
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+            });
+        } catch (error) {
+            clearTimeout(timeoutId);
+            if (error instanceof Error && error.name === 'AbortError') {
+                throw new Error('Image fetch timed out after 30 seconds');
+            }
+            throw error;
+        }
     }
 
     // Handle local file URIs

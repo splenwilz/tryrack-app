@@ -7,30 +7,8 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { router } from 'expo-router';
 import { CustomHeader } from '@/components/custom-header';
 import { usePublicLooks } from '@/api/looks/queries';
-import { mapLookFromBackendResponse } from '@/utils/looks';
+import { mapLookFromBackendResponse, type Look } from '@/utils/looks';
 import type { LookResponse } from '@/api/looks/types';
-
-// Look/Outfit interface
-interface Look {
-  id: string;
-  title: string;
-  description: string;
-  imageUrl: string;
-  style: string;
-  items: {
-    id: string;
-    title: string;
-    category: string;
-    price: number;
-    imageUrl: string;
-  }[];
-  totalPrice: number;
-  boutique: {
-    id: string;
-    name: string;
-    logo: string;
-  };
-}
 
 // Mock look data (fallback if API returns empty)
 const mockLooksData: Look[] = [
@@ -62,6 +40,9 @@ const mockLooksData: Look[] = [
       name: 'Luxe Boutique',
       logo: 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=100&h=100&fit=crop',
     },
+    isFeatured: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   },
   {
     id: 'look2',
@@ -91,6 +72,9 @@ const mockLooksData: Look[] = [
       name: 'Street Fashion',
       logo: 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=100&h=100&fit=crop',
     },
+    isFeatured: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   },
   {
     id: 'look3',
@@ -120,6 +104,9 @@ const mockLooksData: Look[] = [
       name: 'Chic Collection',
       logo: 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=100&h=100&fit=crop',
     },
+    isFeatured: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   },
   {
     id: 'look4',
@@ -149,6 +136,9 @@ const mockLooksData: Look[] = [
       name: 'Bohemian Dreams',
       logo: 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=100&h=100&fit=crop',
     },
+    isFeatured: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   },
   {
     id: 'look5',
@@ -178,6 +168,9 @@ const mockLooksData: Look[] = [
       name: 'Luxe Boutique',
       logo: 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=100&h=100&fit=crop',
     },
+    isFeatured: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   },
 ];
 

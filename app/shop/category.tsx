@@ -1,4 +1,4 @@
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, router } from 'expo-router';
 import { useMemo } from 'react';
 import { useShopProducts } from '@/api/shop/queries';
 import { useLocation } from '@/hooks/use-location';
@@ -22,19 +22,30 @@ export default function ShopCategoryRoute() {
     // Get user location (optional)
     const { location } = useLocation({ autoRequest: false });
 
+    // Memoize shop products options to prevent unnecessary refetches
+    const shopProductsOptions = useMemo(() => {
+        const options: Parameters<typeof useShopProducts>[0] = {
+            category: category || null,
+            radius_miles: radiusMiles,
+            limit: 100, // Get more items for category view
+        };
+
+        // Only include lat/long if both are available
+        if (location?.latitude != null && location?.longitude != null) {
+            options.latitude = location.latitude;
+            options.longitude = location.longitude;
+        }
+
+        return options;
+    }, [category, radiusMiles, location?.latitude, location?.longitude]);
+
     // Fetch shop products with category filter
     const { 
         data: shopData, 
         isLoading, 
         isFetching, 
         error 
-    } = useShopProducts({
-        category: category || null,
-        radius_miles: radiusMiles,
-        latitude: (location?.latitude != null && location?.longitude != null) ? location.latitude : null,
-        longitude: (location?.latitude != null && location?.longitude != null) ? location.longitude : null,
-        limit: 100, // Get more items for category view
-    });
+    } = useShopProducts(shopProductsOptions);
 
     // Check if we're loading (including initial fetch with placeholder data)
     const isDataLoading = isLoading || (isFetching && (!shopData?.items || shopData.items.length === 0));
@@ -86,7 +97,6 @@ export default function ShopCategoryRoute() {
 
     // Handle item press - navigate to product detail view
     const handleItemPress = (itemId: string) => {
-        const { router } = require('expo-router');
         router.push({
             pathname: '/catalog/product_detail',
             params: { productId: itemId, source: 'shop' },
