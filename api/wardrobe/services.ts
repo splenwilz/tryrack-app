@@ -507,6 +507,16 @@ export async function getVirtualTryOn(session_id: string): Promise<VirtualTryOnH
     return response;
 }
 
+/**
+ * Delete a virtual try-on session
+ * @param session_id The ID of the try-on session to delete
+ */
+export async function deleteVirtualTryOn(session_id: string | number): Promise<void> {
+    await apiClient<void>(`/api/v1/virtual-try-on/${session_id}`, {
+        method: "DELETE",
+    });
+}
+
 
 // Create wardrobe item
 export async function createWardrobeItem(

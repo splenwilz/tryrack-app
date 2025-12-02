@@ -38,13 +38,13 @@ export default function BoutiqueTabLayout() {
 
 
             {/* Orders Tab */}
-            {/* <Tabs.Screen
+            <Tabs.Screen
                 name="orders"
                 options={{
                     title: 'Orders',
                     tabBarIcon: ({ color }) => <IconSymbol size={28} name="bag.fill" color={color} />,
                 }}
-            /> */}
+            />
 
             {/* Customer Try-On Tab */}
             {/* <Tabs.Screen
@@ -65,13 +65,13 @@ export default function BoutiqueTabLayout() {
             /> */}
 
             {/* Profile Tab */}
-            {/* <Tabs.Screen
+            <Tabs.Screen
                 name="profile"
                 options={{
                     title: 'Profile',
                     tabBarIcon: ({ color }) => <IconSymbol size={28} name="person.fill" color={color} />,
                 }}
-            /> */}
+            />
         </Tabs>
     );
 }

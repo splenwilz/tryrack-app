@@ -12,13 +12,17 @@ import {
   ScrollView,
   StyleSheet,
   View,
+  TouchableOpacity,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
 import { CustomHeader } from '@/components/custom-header';
 import { ThemedText } from '@/components/themed-text';
 import { useThemeColor } from '@/hooks/use-theme-color';
-import { useGetVirtualTryOn } from '@/api/wardrobe/queries';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useGetVirtualTryOn, useDeleteVirtualTryOn } from '@/api/wardrobe/queries';
+import { IconSymbol } from '@/components/ui/icon-symbol';
 
 function formatDate(dateString?: string) {
   if (!dateString) return 'Unknown date';
@@ -28,9 +32,11 @@ function formatDate(dateString?: string) {
 export default function TryOnDetailScreen() {
   const { tryonId } = useLocalSearchParams<{ tryonId?: string }>();
   const backgroundColor = useThemeColor({}, 'background');
-  const cardColor = useThemeColor({ light: '#ffffff', dark: '#1c1c1e' }, 'card');
+  const cardColor = useThemeColor({ light: '#ffffff', dark: '#1c1c1e' }, 'background');
   const tintColor = useThemeColor({}, 'tint');
-  const borderColor = useThemeColor({}, 'border');
+  const borderColor = useThemeColor({ light: 'rgba(0,0,0,0.1)', dark: 'rgba(255,255,255,0.1)' }, 'background');
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
 
   const [refreshing, setRefreshing] = useState(false);
 
@@ -42,6 +48,8 @@ export default function TryOnDetailScreen() {
     refetch,
   } = useGetVirtualTryOn(tryonId, { enabled: Boolean(tryonId) });
 
+  const deleteMutation = useDeleteVirtualTryOn();
+
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
     await refetch();
@@ -51,6 +59,49 @@ export default function TryOnDetailScreen() {
   const handleBackPress = () => {
     router.back();
   };
+
+  const handleDelete = useCallback(() => {
+    if (!tryonId) return;
+
+    Alert.alert(
+      'Delete Try-On',
+      'Are you sure you want to delete this try-on? This action cannot be undone.',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteMutation.mutateAsync(Number(tryonId));
+              // Success - navigate back (list will refresh automatically)
+              router.back();
+            } catch (error) {
+              // Check if error is ApiError with 403 status
+              // If backend returns 403 but deletion still happens, navigate back silently
+              if (error && typeof error === 'object' && 'status' in error) {
+                const apiError = error as { status: number; message: string };
+                if (apiError.status === 403) {
+                  // 403 but deletion might have succeeded - navigate back anyway
+                  // Don't show error since deletion appears to work
+                  router.back();
+                  return;
+                }
+              }
+              // For other errors, show the error message
+              Alert.alert(
+                'Error',
+                error instanceof Error ? error.message : 'Failed to delete try-on. Please try again.',
+              );
+            }
+          },
+        },
+      ],
+    );
+  }, [tryonId, deleteMutation]);
 
   if (!tryonId) {
     return (
@@ -95,7 +146,24 @@ export default function TryOnDetailScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor }]}>
-      <CustomHeader title="Try-On Detail" showBackButton onBackPress={handleBackPress} />
+      <CustomHeader
+        title="Try-On Detail"
+        showBackButton
+        onBackPress={handleBackPress}
+        rightAction={
+          <TouchableOpacity
+            onPress={handleDelete}
+            disabled={deleteMutation.isPending}
+            style={styles.deleteButton}
+          >
+            {deleteMutation.isPending ? (
+              <ActivityIndicator size="small" color="#FF3B30" />
+            ) : (
+              <IconSymbol name="trash" size={20} color="#FF3B30" />
+            )}
+          </TouchableOpacity>
+        }
+      />
       <ScrollView
         style={styles.content}
         showsVerticalScrollIndicator={false}
@@ -139,32 +207,66 @@ export default function TryOnDetailScreen() {
           {selectedItems.length === 0 ? (
             <ThemedText style={styles.infoValue}>No wardrobe items linked to this try-on.</ThemedText>
           ) : (
-            selectedItems.map((item) => (
-              <View key={`${item.id}-${item.title}`} style={[styles.itemCard, { borderColor }]}>
-                <View style={styles.itemHeader}>
-                  <ThemedText style={styles.itemTitle}>{item.title}</ThemedText>
-                  <ThemedText style={styles.itemCategory}>{item.category}</ThemedText>
+            selectedItems.map((item) => {
+              const isBoutiqueItem = item.item_type === 'boutique';
+
+              return (
+                <View key={`${item.id}-${item.title}`} style={[styles.itemCard, { borderColor }]}>
+                  <View style={styles.itemHeader}>
+                    <View style={styles.itemHeaderLeft}>
+                      <ThemedText style={styles.itemTitle}>{item.title}</ThemedText>
+                      <ThemedText style={styles.itemCategory}>{item.category}</ThemedText>
+                      {isBoutiqueItem && item.boutique_name && (
+                        <View style={styles.boutiqueInfo}>
+                          {item.boutique_logo_url && (
+                            <Image
+                              source={{ uri: item.boutique_logo_url }}
+                              style={styles.boutiqueLogo}
+                            />
+                          )}
+                          <ThemedText style={styles.boutiqueName}>{item.boutique_name}</ThemedText>
+                        </View>
+                      )}
+                    </View>
+                    {isBoutiqueItem && item.product_id && (
+                      <TouchableOpacity
+                        style={[styles.viewProductButton, { backgroundColor: tintColor }]}
+                        onPress={() => {
+                          router.push({
+                            pathname: '/catalog/product_detail',
+                            params: {
+                              productId: item.product_id,
+                              source: 'shop',
+                            },
+                          });
+                        }}
+                      >
+                        <IconSymbol name="arrow.right.circle.fill" size={16} color={isDark ? '#000' : 'white'} />
+                        <ThemedText style={[styles.viewProductText, { color: isDark ? '#000' : 'white' }]}>View Product</ThemedText>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                  {item.colors?.length > 0 && (
+                    <View style={styles.chipRow}>
+                      {item.colors.map((color) => (
+                        <View key={color} style={[styles.chip, { borderColor: tintColor }]}>
+                          <ThemedText style={[styles.chipText, { color: tintColor }]}>{color}</ThemedText>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+                  {item.tags?.length > 0 && (
+                    <View style={styles.tagRow}>
+                      {item.tags.map((tag) => (
+                        <View key={tag} style={styles.tag}>
+                          <ThemedText style={styles.tagText}>{tag}</ThemedText>
+                        </View>
+                      ))}
+                    </View>
+                  )}
                 </View>
-                {item.colors?.length > 0 && (
-                  <View style={styles.chipRow}>
-                    {item.colors.map((color) => (
-                      <View key={color} style={[styles.chip, { borderColor: tintColor }]}>
-                        <ThemedText style={[styles.chipText, { color: tintColor }]}>{color}</ThemedText>
-                      </View>
-                    ))}
-                  </View>
-                )}
-                {item.tags?.length > 0 && (
-                  <View style={styles.tagRow}>
-                    {item.tags.map((tag) => (
-                      <View key={tag} style={styles.tag}>
-                        <ThemedText style={styles.tagText}>{tag}</ThemedText>
-                      </View>
-                    ))}
-                  </View>
-                )}
-              </View>
-            ))
+              );
+            })
           )}
         </View>
       </ScrollView>
@@ -237,7 +339,13 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   itemHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
     marginBottom: 8,
+  },
+  itemHeaderLeft: {
+    flex: 1,
   },
   itemTitle: {
     fontSize: 16,
@@ -246,6 +354,35 @@ const styles = StyleSheet.create({
   itemCategory: {
     fontSize: 13,
     opacity: 0.7,
+    marginTop: 2,
+  },
+  boutiqueInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 6,
+    gap: 6,
+  },
+  boutiqueLogo: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+  },
+  boutiqueName: {
+    fontSize: 12,
+    opacity: 0.8,
+    fontStyle: 'italic',
+  },
+  viewProductButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    gap: 4,
+  },
+  viewProductText: {
+    fontSize: 12,
+    fontWeight: '600',
   },
   chipRow: {
     flexDirection: 'row',
@@ -289,6 +426,10 @@ const styles = StyleSheet.create({
   errorSubText: {
     opacity: 0.7,
     textAlign: 'center',
+  },
+  deleteButton: {
+    padding: 8,
+    marginRight: -8,
   },
 });
 

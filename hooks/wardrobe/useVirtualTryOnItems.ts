@@ -35,12 +35,6 @@ export interface WardrobeItemTryOn {
 
 type TryOnItem = BoutiqueItem | WardrobeItemTryOn;
 
-/**
- * Infer item type based on structure
- */
-function inferItemType(item: TryOnItem): 'wardrobe' | 'boutique' {
-    return 'boutique' in item ? 'boutique' : 'wardrobe';
-}
 
 export function useVirtualTryOnItems() {
     const { itemType, itemData } = useLocalSearchParams<{ itemType?: string; itemData?: string }>();
@@ -48,20 +42,38 @@ export function useVirtualTryOnItems() {
 
     // Initialize from route params
     useEffect(() => {
-        if (itemType === 'wardrobe' && itemData) {
+        if (itemData) {
             try {
                 const parsedData = JSON.parse(itemData);
-                const wardrobeItem: WardrobeItemTryOn = {
-                    id: parsedData.id,
-                    title: parsedData.title,
-                    category: parsedData.category,
-                    imageUrl: parsedData.image_url,
-                    colors: parsedData.colors || [],
-                    tags: parsedData.tags || [],
-                };
-                setSelectedItems([wardrobeItem]);
+
+                if (itemType === 'wardrobe') {
+                    const wardrobeItem: WardrobeItemTryOn = {
+                        id: parsedData.id,
+                        title: parsedData.title,
+                        category: parsedData.category,
+                        imageUrl: parsedData.image_url,
+                        colors: parsedData.colors || [],
+                        tags: parsedData.tags || [],
+                    };
+                    setSelectedItems([wardrobeItem]);
+                } else if (itemType === 'boutique') {
+                    // Boutique item from shop
+                    const boutiqueItem: BoutiqueItem = {
+                        id: parsedData.id,
+                        title: parsedData.title,
+                        brand: parsedData.brand,
+                        category: parsedData.category,
+                        imageUrl: parsedData.imageUrl,
+                        price: parsedData.price,
+                        colors: parsedData.colors || [],
+                        tags: parsedData.tags || [],
+                        boutique: parsedData.boutique,
+                        arAvailable: parsedData.arAvailable || true,
+                    };
+                    setSelectedItems([boutiqueItem]);
+                }
             } catch (error) {
-                console.error('Error parsing wardrobe item data:', error);
+                console.error('Error parsing item data:', error);
             }
         }
     }, [itemType, itemData]);
@@ -122,5 +134,13 @@ export function useVirtualTryOnItems() {
         inferItemType,
         hasImageQualityWarning: selectedItems.length > 2, // Warning when more than 2 items
     };
+}
+
+/**
+ * Infer item type based on structure
+ * Exported for use in other modules
+ */
+export function inferItemType(item: TryOnItem): 'wardrobe' | 'boutique' {
+    return 'boutique' in item ? 'boutique' : 'wardrobe';
 }
 

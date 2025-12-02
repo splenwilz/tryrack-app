@@ -73,6 +73,12 @@ function parseValidationErrors(errorArray: unknown[]): string {
 async function parseErrorResponse(response: Response): Promise<string> {
   try {
     const errorText = await response.text();
+
+    // If response is empty (e.g., 204 No Content), return a default message
+    if (!errorText || errorText.trim().length === 0) {
+      return response.statusText || 'An error occurred';
+    }
+
     // Try to parse as JSON
     const errorJson = JSON.parse(errorText);
 
@@ -122,9 +128,19 @@ export function getApiBaseUrl(): string {
  */
 export async function getAccessToken(): Promise<string | null> {
   try {
-    return await SecureStore.getItemAsync(ACCESS_TOKEN_KEY)
+    const token = await SecureStore.getItemAsync(ACCESS_TOKEN_KEY)
+    if (token) {
+      console.log('[API] [TOKEN] Access token retrieved:', {
+        length: token.length,
+        preview: `${token.substring(0, 20)}...${token.substring(token.length - 10)}`,
+        hasToken: true,
+      })
+    } else {
+      console.log('[API] [TOKEN] No access token found')
+    }
+    return token
   } catch (error) {
-    console.error('[API] Failed to get access token:', error)
+    console.error('[API] [TOKEN] Failed to get access token:', error)
     return null
   }
 }
@@ -134,9 +150,19 @@ export async function getAccessToken(): Promise<string | null> {
  */
 async function getRefreshToken(): Promise<string | null> {
   try {
-    return await SecureStore.getItemAsync(REFRESH_TOKEN_KEY)
+    const token = await SecureStore.getItemAsync(REFRESH_TOKEN_KEY)
+    if (token) {
+      console.log('[API] [TOKEN] Refresh token retrieved:', {
+        length: token.length,
+        preview: `${token.substring(0, 20)}...${token.substring(token.length - 10)}`,
+        hasToken: true,
+      })
+    } else {
+      console.log('[API] [TOKEN] No refresh token found')
+    }
+    return token
   } catch (error) {
-    console.error('[API] Failed to get refresh token:', error)
+    console.error('[API] [TOKEN] Failed to get refresh token:', error)
     return null
   }
 }
@@ -146,12 +172,25 @@ async function getRefreshToken(): Promise<string | null> {
  */
 export async function saveTokens(accessToken: string, refreshToken?: string): Promise<void> {
   try {
+    console.log('[API] [TOKEN] Saving tokens:', {
+      accessToken: {
+        length: accessToken.length,
+        preview: `${accessToken.substring(0, 20)}...${accessToken.substring(accessToken.length - 10)}`,
+      },
+      refreshToken: refreshToken ? {
+        length: refreshToken.length,
+        preview: `${refreshToken.substring(0, 20)}...${refreshToken.substring(refreshToken.length - 10)}`,
+      } : null,
+    })
     await SecureStore.setItemAsync(ACCESS_TOKEN_KEY, accessToken)
     if (refreshToken) {
       await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, refreshToken)
     }
+    // Reset redirect flag on successful login/token save
+    isRedirectingToLogin = false
+    console.log('[API] [TOKEN] Tokens saved successfully')
   } catch (error) {
-    console.error('[API] Failed to save tokens:', error)
+    console.error('[API] [TOKEN] Failed to save tokens:', error)
     throw error
   }
 }
@@ -222,12 +261,14 @@ export async function clearPendingPassword(): Promise<void> {
  */
 export async function clearTokens(): Promise<void> {
   try {
+    console.log('[API] [TOKEN] Clearing all tokens and user data')
     await SecureStore.deleteItemAsync(ACCESS_TOKEN_KEY)
     await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY)
     await SecureStore.deleteItemAsync(USER_STORAGE_KEY)
     await SecureStore.deleteItemAsync(PENDING_PASSWORD_KEY)
+    console.log('[API] [TOKEN] All tokens cleared successfully')
   } catch (error) {
-    console.error('[API] Failed to clear tokens:', error)
+    console.error('[API] [TOKEN] Failed to clear tokens:', error)
   }
 }
 
@@ -247,6 +288,36 @@ export function clearQueryCache(): void {
 // Global refresh lock to prevent parallel token refreshes
 // If multiple requests hit 401 simultaneously, they'll share the same refresh
 let refreshPromise: Promise<boolean> | null = null
+
+// Global flag to prevent multiple redirects when session expires
+let isRedirectingToLogin = false
+
+/**
+ * Handle session expiration by redirecting to login
+ * Uses dynamic import to avoid React context issues
+ */
+async function handleSessionExpiration(): Promise<void> {
+  // Prevent multiple redirects if already redirecting
+  if (isRedirectingToLogin) {
+    return
+  }
+
+  isRedirectingToLogin = true
+  console.log('[API] [SESSION] Session expired - Redirecting to login...')
+
+  try {
+    // Clear query cache to prevent stale data
+    clearQueryCache()
+
+    // Dynamically import router to avoid React context issues
+    const { router } = await import('expo-router')
+    router.replace('/auth/signin')
+  } catch (error) {
+    console.error('[API] [SESSION] Failed to redirect to login:', error)
+    // Reset flag on error so user can try again
+    isRedirectingToLogin = false
+  }
+}
 
 /**
  * Refresh access token using refresh token
@@ -273,6 +344,8 @@ async function triggerRefresh(): Promise<boolean> {
         console.log('[API] [REFRESH] No refresh token available')
         // Clear tokens if no refresh token (session expired)
         await clearTokens()
+        // Redirect to login when refresh token is missing
+        await handleSessionExpiration()
         return false
       }
 
@@ -300,14 +373,20 @@ async function triggerRefresh(): Promise<boolean> {
       })
 
       if (!response.ok) {
-        // If 401 or 403, refresh token is invalid - clear auth
+        // If 401 or 403, refresh token is invalid/expired - clear auth and redirect
         if (response.status === 401 || response.status === 403) {
-          console.log('[API] [REFRESH] Refresh token invalid (401/403)')
+          console.log('[API] [REFRESH] Refresh token invalid/expired (401/403)')
           await clearTokens()
+          // Redirect to login when refresh token is invalid/expired
+          await handleSessionExpiration()
           return false
         }
+        // For other errors (like 500), also treat as session expiration
+        // since we can't refresh, user needs to login again
         console.log(`[API] [REFRESH] Refresh failed: ${response.status}`)
         await clearTokens()
+        // Redirect to login when refresh fails
+        await handleSessionExpiration()
         return false
       }
 
@@ -316,6 +395,11 @@ async function triggerRefresh(): Promise<boolean> {
 
       // Backend returns: { access_token: string, refresh_token: string }
       if (data.access_token) {
+        console.log('[API] [REFRESH] New tokens received from backend:', {
+          accessTokenLength: data.access_token.length,
+          refreshTokenLength: data.refresh_token?.length || 0,
+          hasRefreshToken: !!data.refresh_token,
+        })
         await saveTokens(data.access_token, data.refresh_token)
         console.log('[API] [REFRESH] Token refreshed successfully:', {
           totalDuration: `${totalDuration}ms`,
@@ -335,6 +419,8 @@ async function triggerRefresh(): Promise<boolean> {
       })
       // Clear tokens on any error (matches Next.js pattern)
       await clearTokens()
+      // Redirect to login when refresh fails due to error
+      await handleSessionExpiration()
       return false
     } finally {
       // Clear the refresh promise so future requests can refresh again
@@ -361,6 +447,25 @@ export async function apiClient<T>(url: string, options?: RequestInit): Promise<
     // Get access token from secure storage
     const accessToken = await getAccessToken()
 
+    // If no token and this is not a retry, check if we should redirect to login
+    // Skip for public endpoints (like signin, signup, refresh-token)
+    if (!accessToken && !isRetry) {
+      const isPublicEndpoint = url.includes('/auth/signin') ||
+        url.includes('/auth/signup') ||
+        url.includes('/auth/refresh-token') ||
+        url.includes('/auth/forgot-password') ||
+        url.includes('/auth/reset-password') ||
+        url.includes('/auth/verify-email')
+
+      if (!isPublicEndpoint) {
+        // No token and not a public endpoint - session expired, redirect to login
+        console.log('[API] No access token available - Session expired, redirecting to login...')
+        await handleSessionExpiration()
+        // Throw error to prevent the request from proceeding
+        throw new ApiError(401, 'Session expired. Please sign in again.', undefined, true)
+      }
+    }
+
     const isFormDataBody =
       typeof FormData !== 'undefined' && options?.body instanceof FormData
 
@@ -382,6 +487,17 @@ export async function apiClient<T>(url: string, options?: RequestInit): Promise<
     }
 
     const targetUrl = url.startsWith('http') ? url : `${apiBaseUrl}${url}`
+
+    // Log token usage after targetUrl is defined
+    if (accessToken) {
+      console.log('[API] [TOKEN] Using access token in request:', {
+        length: accessToken.length,
+        preview: `${accessToken.substring(0, 20)}...${accessToken.substring(accessToken.length - 10)}`,
+        url: targetUrl,
+      })
+    } else {
+      console.log('[API] [TOKEN] No access token available for request:', { url: targetUrl })
+    }
 
     const fetchOptions: RequestInit = {
       ...options,
@@ -470,6 +586,19 @@ export async function apiClient<T>(url: string, options?: RequestInit): Promise<
       const msg = await parseErrorResponse(res)
       throw new ApiError(401, msg || 'Session expired. Please sign in again.', undefined, true)
     }
+  }
+
+  // Check for 204 No Content before checking res.ok
+  // 204 is a success status but has no body, so we handle it early
+  if (res.status === 204) {
+    const totalDuration = Date.now() - totalStartTime
+    console.log('[API] Request Success:', {
+      url,
+      status: res.status,
+      totalDuration: `${totalDuration}ms`,
+      responseType: 'No Content (204)',
+    })
+    return undefined as T
   }
 
   if (!res.ok) {

@@ -11,6 +11,7 @@ type CustomHeaderProps = {
   onSearchPress?: () => void;
   onNotificationPress?: () => void;
   notificationCount?: number;
+  rightAction?: React.ReactNode;
 } & (
   | { showBackButton?: false; onBackPress?: never }
   | { showBackButton: true; onBackPress: () => void }
@@ -28,6 +29,7 @@ export const CustomHeader: React.FC<CustomHeaderProps> = ({
   notificationCount = 0,
   showBackButton = false,
   onBackPress,
+  rightAction,
 }) => {
   const backgroundColor = useThemeColor({}, 'background');
   const iconColor = useThemeColor({}, 'icon');
@@ -66,58 +68,64 @@ export const CustomHeader: React.FC<CustomHeaderProps> = ({
       )}
       </View>
 
-      {/* Right side - Icons */}
+      {/* Right side - Icons or Custom Action */}
       <View style={styles.rightSection}>
-        {/* Search Icon */}
-        <TouchableOpacity
-          style={styles.iconButton}
-          onPress={onSearchPress}
-          disabled={!onSearchPress}
-          accessibilityRole="button"
-          accessibilityLabel="Search"
-          accessibilityHint="Opens search"
-          accessibilityState={{ disabled: !onSearchPress }}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          activeOpacity={0.7}
-        >
-          <IconSymbol
-            name="magnifyingglass"
-            size={24}
-            color={iconColor}
-          />
-        </TouchableOpacity>
+        {rightAction ? (
+          rightAction
+        ) : (
+          <>
+            {/* Search Icon */}
+            <TouchableOpacity
+              style={styles.iconButton}
+              onPress={onSearchPress}
+              disabled={!onSearchPress}
+              accessibilityRole="button"
+              accessibilityLabel="Search"
+              accessibilityHint="Opens search"
+              accessibilityState={{ disabled: !onSearchPress }}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              activeOpacity={0.7}
+            >
+              <IconSymbol
+                name="magnifyingglass"
+                size={24}
+                color={iconColor}
+              />
+            </TouchableOpacity>
 
-        {/* Notification Icon with Badge */}
-        <TouchableOpacity
-          style={styles.iconButton}
-          onPress={onNotificationPress}
-          disabled={!onNotificationPress}
-          accessibilityRole="button"
-          accessibilityLabel="Notifications"
-          accessibilityHint="Opens notifications"
-          accessibilityState={{ disabled: !onNotificationPress }}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          activeOpacity={0.7}
-        >
-          <View style={styles.notificationContainer}>
-            <IconSymbol
-              name="bell"
-              size={24}
-              color={iconColor}
-            />
-            {/* Notification Badge */}
-            {notificationCount > 0 && (
-              <View style={[
-                styles.badge,
-                { backgroundColor: Colors[colorScheme].tint }
-              ]}>
-                <Text style={styles.badgeText}>
-                  {notificationCount > 99 ? '99+' : notificationCount}
-                </Text>
+            {/* Notification Icon with Badge */}
+            <TouchableOpacity
+              style={styles.iconButton}
+              onPress={onNotificationPress}
+              disabled={!onNotificationPress}
+              accessibilityRole="button"
+              accessibilityLabel="Notifications"
+              accessibilityHint="Opens notifications"
+              accessibilityState={{ disabled: !onNotificationPress }}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              activeOpacity={0.7}
+            >
+              <View style={styles.notificationContainer}>
+                <IconSymbol
+                  name="bell"
+                  size={24}
+                  color={iconColor}
+                />
+                {/* Notification Badge */}
+                {notificationCount > 0 && (
+                  <View style={[
+                    styles.badge,
+                    { backgroundColor: Colors[colorScheme].tint }
+                  ]}>
+                    <Text style={styles.badgeText}>
+                      {notificationCount > 99 ? '99+' : notificationCount}
+                    </Text>
+                  </View>
+                )}
               </View>
-            )}
-          </View>
-        </TouchableOpacity>
+            </TouchableOpacity>
+          </>
+        )}
       </View>
     </View>
   );

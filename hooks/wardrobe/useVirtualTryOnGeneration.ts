@@ -12,6 +12,7 @@ import { uploadImage } from '@/api/upload/services';
 import type { SaveVirtualTryOnRequest, VirtualTryOnItemDetail } from '@/api/wardrobe/types';
 import type { BoutiqueItem, WardrobeItemTryOn } from './useVirtualTryOnItems';
 import { mightAddItems } from '@/utils/virtual-tryon';
+import { inferItemType } from './useVirtualTryOnItems';
 
 type TryOnItem = BoutiqueItem | WardrobeItemTryOn;
 
@@ -166,13 +167,34 @@ export function useVirtualTryOnGeneration({
                         generated_image_uri: remoteUri,
                         use_clean_background: useCleanBackground,
                         custom_instructions: customPrompt.trim() || null,
-                        selected_items: selectedItems.map((item) => ({
-                            id: item.id,
-                            title: item.title,
-                            category: item.category,
-                            colors: item.colors || [],
-                            tags: item.tags || [],
-                        })),
+                        selected_items: selectedItems.map((item) => {
+                            const itemType = inferItemType(item);
+                            const baseItem = {
+                                id: item.id,
+                                title: item.title,
+                                category: item.category,
+                                colors: item.colors || [],
+                                tags: item.tags || [],
+                            };
+
+                            // Add boutique fields if item is from boutique
+                            if (itemType === 'boutique' && 'boutique' in item) {
+                                return {
+                                    ...baseItem,
+                                    item_type: 'boutique' as const,
+                                    product_id: String(item.id), // Product ID for navigation
+                                    boutique_id: item.boutique.id,
+                                    boutique_name: item.boutique.name,
+                                    boutique_logo_url: item.boutique.logo || undefined,
+                                };
+                            }
+
+                            // Wardrobe item
+                            return {
+                                ...baseItem,
+                                item_type: 'wardrobe' as const,
+                            };
+                        }),
                     };
 
                     console.log('[Virtual Try-On] ========================================');

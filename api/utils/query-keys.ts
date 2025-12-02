@@ -105,5 +105,57 @@ export const queryKeys = {
      */
     productById: (productId: string) => ['catalog', 'products', productId] as const,
   },
+
+  /**
+   * Boutique Profile-related query keys
+   */
+  boutiqueProfile: {
+    /**
+     * Get current user's boutique profile
+     */
+    current: () => ['boutique-profile', 'current'] as const,
+  },
+
+  /**
+   * Looks/Outfits-related query keys
+   */
+  looks: {
+    /**
+     * All looks queries
+     */
+    all: () => ['looks'] as const,
+
+    /**
+     * Looks for current boutique
+     */
+    boutique: (filters?: { style?: string | null; is_featured?: boolean | null; skip?: number; limit?: number }) => ['looks', 'boutique', filters] as const,
+
+    /**
+     * Public looks (for shop screen)
+     */
+    public: (filters?: { style?: string; boutique_id?: string; featured_only?: boolean }) =>
+      ['looks', 'public', filters] as const,
+
+    /**
+     * Look by ID
+     */
+    detail: (id: string) => ['looks', 'detail', id] as const,
+  },
+
+  /**
+   * Shop-related query keys
+   */
+  shop: {
+    /**
+     * All shop queries
+     */
+    all: () => ['shop'] as const,
+
+    /**
+     * Shop products list with optional filters (category, location, radius)
+     */
+    products: (options?: { category?: string | null; radius_miles?: number | null; latitude?: number | null; longitude?: number | null; limit?: number | null }) =>
+      ['shop', 'products', options] as const,
+  },
 } as const;
 

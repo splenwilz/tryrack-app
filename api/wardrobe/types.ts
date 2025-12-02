@@ -35,7 +35,8 @@ export const UpdateWardrobeItemRequestSchema = z.object({
     colors: z.array(z.string()).optional(),
     tags: z.array(z.string()).optional(),
     image_url: z.string().optional(),
-    status: z.enum(["clean", "dirty", "worn", "planned"]).optional().default("clean"),
+    // Leave truly optional so omitted status does not change the existing value
+    status: z.enum(["clean", "dirty", "worn", "planned"]).optional(),
 })
 
 export const WardrobeItemResponseSchema = CreateWardrobeItemRequestSchema.extend({
@@ -94,6 +95,12 @@ export interface SaveVirtualTryOnRequest {
         category: string;
         colors: string[];
         tags: string[];
+        // Boutique item fields (optional)
+        item_type?: 'wardrobe' | 'boutique';
+        product_id?: string; // Catalog product ID for boutique items
+        boutique_id?: string; // Boutique owner user ID
+        boutique_name?: string; // Boutique name for display
+        boutique_logo_url?: string; // Boutique logo URL (optional)
     }[];
 }
 
@@ -121,6 +128,12 @@ export interface VirtualTryOnHistoryItem {
         category: string;
         colors: string[];
         tags: string[];
+        // Boutique item fields (optional, returned from backend)
+        item_type?: 'wardrobe' | 'boutique';
+        product_id?: string; // Catalog product ID for boutique items
+        boutique_id?: string; // Boutique owner user ID
+        boutique_name?: string; // Boutique name for display
+        boutique_logo_url?: string; // Boutique logo URL (optional)
     }[];
     created_at: string;
     updated_at: string;

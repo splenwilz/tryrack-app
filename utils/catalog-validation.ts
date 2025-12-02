@@ -50,10 +50,18 @@ export function validateCatalogProductForm(formData: CatalogProductFormData): Va
     }
 
     // Validate discount price
-    if (discountPrice && (Number.isNaN(discountPrice) || discountPrice <= price)) {
+    if (discountPrice && (Number.isNaN(discountPrice) || discountPrice <= 0)) {
         return {
             isValid: false,
-            errorMessage: 'Discount price must be greater than selling price to show a discount',
+            errorMessage: 'Please enter a valid discount price greater than 0',
+        };
+    }
+
+    // Validate discount price is less than regular price
+    if (discountPrice && discountPrice >= price) {
+        return {
+            isValid: false,
+            errorMessage: 'Discount price must be less than selling price to show a discount',
         };
     }
 

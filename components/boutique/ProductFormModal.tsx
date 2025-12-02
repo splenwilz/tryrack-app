@@ -5,7 +5,6 @@
  * @see https://reactnative.dev/docs/modal - React Native Modal
  */
 
-import React from 'react';
 import { Modal, StyleSheet, View, ScrollView, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/themed-text';
@@ -17,6 +16,7 @@ import { ColorSelector } from '@/components/wardrobe/ColorSelector';
 import { TagInput } from '@/components/wardrobe/TagInput';
 import type { CatalogProduct } from '@/types/boutique';
 import type { CatalogProductFormData } from '@/hooks/boutique/useCatalogProductForm';
+import type { ProcessingStage } from '@/types/wardrobe';
 import { calculateProfit } from '@/utils/catalog-validation';
 
 interface ProductFormModalProps {
@@ -32,7 +32,7 @@ interface ProductFormModalProps {
     onImageUpload: () => Promise<void>;
     onRemovePhoto: () => void;
     imageUrl: string;
-    processingStage: string | null;
+    processingStage: ProcessingStage;
     isPickingPhoto: boolean;
     isUploadingImage: boolean;
     isSaving: boolean;
@@ -84,7 +84,11 @@ export function ProductFormModal({
                     <ThemedText type="subtitle" style={styles.modalTitle}>
                         {editingProduct ? 'Edit Product' : 'Add New Product'}
                     </ThemedText>
-                    <TouchableOpacity onPress={onSave}>
+                    <TouchableOpacity
+                        onPress={onSave}
+                        disabled={isPickingPhoto || isUploadingImage || isSaving}
+                        style={{ opacity: (isPickingPhoto || isUploadingImage || isSaving) ? 0.5 : 1 }}
+                    >
                         <ThemedText style={[styles.modalSaveText, { color: tintColor }]}>
                             Save
                         </ThemedText>

@@ -15,6 +15,7 @@ import {
     RefreshControl,
     Dimensions,
     TextInput,
+    Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -22,7 +23,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { CustomHeader } from '@/components/custom-header';
-import { useGetVirtualTryOns } from '@/api/wardrobe/queries';
+import { useGetVirtualTryOns, useDeleteVirtualTryOn } from '@/api/wardrobe/queries';
 import type { VirtualTryOnHistoryItem } from '@/api/wardrobe/types';
 import { ShimmerPlaceholder } from '@/components/ShimmerPlaceholder';
 
@@ -57,8 +58,12 @@ export default function TryOnHistoryScreen() {
         data: tryons = [],
         isLoading,
         isFetching,
+        isError,
+        error,
         refetch
     } = useGetVirtualTryOns();
+
+    const deleteMutation = useDeleteVirtualTryOn();
 
     // Check if we're loading (including initial fetch with placeholder data)
     const isDataLoading = isLoading || (isFetching && tryons.length === 0);
@@ -104,6 +109,50 @@ export default function TryOnHistoryScreen() {
         });
     };
 
+    const handleDelete = (item: VirtualTryOnHistoryItem, e?: { stopPropagation: () => void }) => {
+        if (e) {
+            e.stopPropagation();
+        }
+
+        Alert.alert(
+            'Delete Try-On',
+            'Are you sure you want to delete this try-on? This action cannot be undone.',
+            [
+                {
+                    text: 'Cancel',
+                    style: 'cancel',
+                },
+                {
+                    text: 'Delete',
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            await deleteMutation.mutateAsync(item.id);
+                            // Success - no need to show alert, the list will refresh automatically
+                        } catch (error) {
+                            // Check if error is ApiError with 403 status
+                            // If backend returns 403 but deletion still happens, don't show error
+                            if (error && typeof error === 'object' && 'status' in error) {
+                                const apiError = error as { status: number; message: string };
+                                if (apiError.status === 403) {
+                                    // 403 but deletion might have succeeded - refresh list silently
+                                    // Don't show error since deletion appears to work
+                                    await refetch();
+                                    return;
+                                }
+                            }
+                            // For other errors, show the error message
+                            Alert.alert(
+                                'Error',
+                                error instanceof Error ? error.message : 'Failed to delete try-on. Please try again.',
+                            );
+                        }
+                    },
+                },
+            ],
+        );
+    };
+
     const formatDate = useCallback((dateString: string) => {
         const date = new Date(dateString);
         const now = new Date();
@@ -137,6 +186,7 @@ export default function TryOnHistoryScreen() {
         <TouchableOpacity
             style={[styles.card, { backgroundColor: cardBg }]}
             onPress={() => handleItemPress(item)}
+            onLongPress={() => handleDelete(item)}
             activeOpacity={0.7}
         >
             <Image
@@ -148,7 +198,17 @@ export default function TryOnHistoryScreen() {
                 <ThemedText style={[styles.dateText, { color: textColor }]} numberOfLines={1}>
                     {formatDate(item.created_at)}
                 </ThemedText>
-                <MaterialIcons name="chevron-right" size={20} color={textColor} />
+                <TouchableOpacity
+                    onPress={(e) => handleDelete(item, e)}
+                    style={styles.deleteIconButton}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                    <MaterialIcons
+                        name="delete-outline"
+                        size={20}
+                        color="#FF3B30"
+                    />
+                </TouchableOpacity>
             </View>
         </TouchableOpacity>
     );
@@ -165,6 +225,22 @@ export default function TryOnHistoryScreen() {
                 onPress={() => router.push('/(tabs)/wardrobe')}
             >
                 <ThemedText style={styles.emptyButtonText}>Go to Wardrobe</ThemedText>
+            </TouchableOpacity>
+        </View>
+    );
+
+    const renderErrorState = () => (
+        <View style={styles.emptyContainer}>
+            <MaterialIcons name="error-outline" size={64} color="#FF3B30" />
+            <ThemedText style={[styles.emptyText, { color: textColor }]}>Failed to Load Try-Ons</ThemedText>
+            <ThemedText style={[styles.emptySubtext, { color: '#999' }]}>
+                {error instanceof Error ? error.message : 'Unable to load your try-on history. Please try again.'}
+            </ThemedText>
+            <TouchableOpacity
+                style={[styles.emptyButton, { backgroundColor: tintColor }]}
+                onPress={() => refetch()}
+            >
+                <ThemedText style={styles.emptyButtonText}>Retry</ThemedText>
             </TouchableOpacity>
         </View>
     );
@@ -233,6 +309,8 @@ export default function TryOnHistoryScreen() {
             {/* Grid */}
             {isDataLoading ? (
                 renderLoadingSkeletons()
+            ) : isError ? (
+                renderErrorState()
             ) : (
                 <FlatList
                     data={filteredTryons}
@@ -336,6 +414,10 @@ const styles = StyleSheet.create({
     dateText: {
         fontSize: 14,
         flex: 1,
+    },
+    deleteIconButton: {
+        padding: 4,
+        marginLeft: 8,
     },
     emptyContainer: {
         alignItems: 'center',

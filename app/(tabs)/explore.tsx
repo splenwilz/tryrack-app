@@ -1,145 +1,59 @@
-//TODO: Until boutique is implement before we remove mock data here
-
-import type React from 'react';
-import { ScrollView, StyleSheet, View, FlatList, TouchableOpacity, Image, TextInput } from 'react-native';
+import React from 'react';
+import { ScrollView, StyleSheet, View, FlatList, TouchableOpacity, Image, TextInput, ActivityIndicator, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/themed-text';
 import { useThemeColor } from '@/hooks/use-theme-color';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { router } from 'expo-router';
 import { CustomHeader } from '@/components/custom-header';
-
-// Boutique item interface based on blueprint
-interface BoutiqueItem {
-  id: string;
-  title: string;
-  brand: string;
-  category: string;
-  imageUrl: string;
-  price: number;
-  colors: string[];
-  tags: string[];
-  boutique: {
-    id: string;
-    name: string;
-    logo: string;
-  };
-  arAvailable: boolean;
-}
-
-// Mock boutique data
-const mockBoutiqueData: BoutiqueItem[] = [
-  {
-    id: '1',
-    title: 'Designer Blazer',
-    brand: 'Fashion Forward',
-    category: 'outerwear',
-    imageUrl: 'https://images.unsplash.com/photo-1594938298605-c04c1c4d8f69?w=300&h=400&fit=crop',
-    price: 45000,
-    colors: ['navy', 'black'],
-    tags: ['formal', 'business'],
-    boutique: {
-      id: 'b1',
-      name: 'Luxe Boutique',
-      logo: 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=100&h=100&fit=crop'
-    },
-    arAvailable: true
-  },
-  {
-    id: '2',
-    title: 'Silk Evening Dress',
-    brand: 'Elegance Co',
-    category: 'dress',
-    imageUrl: 'https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=300&h=400&fit=crop',
-    price: 85000,
-    colors: ['black', 'emerald'],
-    tags: ['formal', 'evening'],
-    boutique: {
-      id: 'b2',
-      name: 'Chic Collection',
-      logo: 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=100&h=100&fit=crop'
-    },
-    arAvailable: true
-  },
-  {
-    id: '3',
-    title: 'Casual Denim Jacket',
-    brand: 'Urban Style',
-    category: 'outerwear',
-    imageUrl: 'https://images.unsplash.com/photo-1544022613-e87ca75a784a?w=300&h=400&fit=crop',
-    price: 25000,
-    colors: ['blue', 'black'],
-    tags: ['casual', 'denim'],
-    boutique: {
-      id: 'b3',
-      name: 'Street Fashion',
-      logo: 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=100&h=100&fit=crop'
-    },
-    arAvailable: false
-  },
-  {
-    id: '4',
-    title: 'Premium Sneakers',
-    brand: 'Athletic Pro',
-    category: 'shoes',
-    imageUrl: 'https://images.unsplash.com/photo-1549298916-b41d501d3772?w=300&h=400&fit=crop',
-    price: 35000,
-    colors: ['white', 'black'],
-    tags: ['casual', 'athletic'],
-    boutique: {
-      id: 'b4',
-      name: 'Sport Hub',
-      logo: 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=100&h=100&fit=crop'
-    },
-    arAvailable: true
-  },
-  {
-    id: '5',
-    title: 'Luxury Handbag',
-    brand: 'Premium Leather',
-    category: 'accessories',
-    imageUrl: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=300&h=400&fit=crop',
-    price: 120000,
-    colors: ['brown', 'black'],
-    tags: ['luxury', 'leather'],
-    boutique: {
-      id: 'b5',
-      name: 'Elite Accessories',
-      logo: 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=100&h=100&fit=crop'
-    },
-    arAvailable: true
-  },
-  {
-    id: '6',
-    title: 'Summer Maxi Dress',
-    brand: 'Boho Chic',
-    category: 'dress',
-    imageUrl: 'https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?w=300&h=400&fit=crop',
-    price: 32000,
-    colors: ['floral', 'white'],
-    tags: ['casual', 'summer'],
-    boutique: {
-      id: 'b6',
-      name: 'Bohemian Dreams',
-      logo: 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=100&h=100&fit=crop'
-    },
-    arAvailable: false
-  }
-];
-
+import { usePublicLooks } from '@/api/looks/queries';
+import { LookCarousel } from '@/components/boutique/LookCarousel';
+import { useShopProducts } from '@/api/shop/queries';
+import { useLocation } from '@/hooks/use-location';
+import { mapShopProductToBoutiqueItem, type BoutiqueItem } from '@/utils/shop';
+import { groupProductsByCategory, getCategoryDisplayName } from '@/utils/shop-categories';
 // Boutique Item Card Component
 const BoutiqueItemCard: React.FC<{ item: BoutiqueItem }> = ({ item }) => {
   const backgroundColor = useThemeColor({}, 'background');
   const tintColor = useThemeColor({}, 'tint');
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
 
   const handleTryOn = () => {
-    console.log(`Try virtually ${item.title}`);
-    // router.push(`/virtual-tryon?itemId=${item.id}`);
+    // Prepare boutique item data for virtual try-on
+    const boutiqueItem = {
+      id: item.id,
+      title: item.title,
+      brand: item.brand,
+      category: item.category,
+      imageUrl: item.imageUrl,
+      price: item.price,
+      colors: item.colors || [],
+      tags: item.tags || [],
+      boutique: {
+        id: 'shop',
+        name: item.boutique.name,
+        logo: item.boutique.logo,
+      },
+      arAvailable: item.arAvailable,
+    };
+
+    // Navigate to virtual try-on with product data
+    router.push({
+      pathname: '/wardrobe/virtual_tryon',
+      params: {
+        itemType: 'boutique',
+        itemData: JSON.stringify(boutiqueItem),
+      },
+    });
   };
 
   const handleViewDetails = () => {
-    console.log(`View details for ${item.title}`);
-    // TODO: Navigate to product details
+    router.push({
+      pathname: '/catalog/product_detail',
+      params: { productId: item.id, source: 'shop' },
+    });
   };
 
   return (
@@ -163,8 +77,8 @@ const BoutiqueItemCard: React.FC<{ item: BoutiqueItem }> = ({ item }) => {
           style={[styles.tryOnButton, { backgroundColor: tintColor }]}
           onPress={handleTryOn}
         >
-          <IconSymbol name="plus" size={16} color="white" />
-          <ThemedText style={styles.tryOnButtonText}>
+          <IconSymbol name="plus" size={16} color={isDark ? '#000' : 'white'} />
+          <ThemedText style={[styles.tryOnButtonText, { color: isDark ? '#000' : 'white' }]}>
             Try Virtually
           </ThemedText>
         </TouchableOpacity>
@@ -177,6 +91,8 @@ const BoutiqueItemCard: React.FC<{ item: BoutiqueItem }> = ({ item }) => {
 const FeaturedBoutique: React.FC<{ item: BoutiqueItem }> = ({ item }) => {
   const backgroundColor = useThemeColor({}, 'background');
   const tintColor = useThemeColor({}, 'tint');
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
 
   return (
     <TouchableOpacity style={[styles.featuredCard, { backgroundColor }]}>
@@ -187,7 +103,7 @@ const FeaturedBoutique: React.FC<{ item: BoutiqueItem }> = ({ item }) => {
           <ThemedText style={styles.featuredBoutique}>{item.boutique.name}</ThemedText>
           <ThemedText style={styles.featuredItem}>{item.title}</ThemedText>
           <TouchableOpacity style={[styles.featuredButton, { backgroundColor: tintColor }]}>
-            <ThemedText style={styles.featuredButtonText}>Explore Collection</ThemedText>
+            <ThemedText style={[styles.featuredButtonText, { color: isDark ? '#000' : 'white' }]}>Explore Collection</ThemedText>
           </TouchableOpacity>
         </View>
       </View>
@@ -195,18 +111,82 @@ const FeaturedBoutique: React.FC<{ item: BoutiqueItem }> = ({ item }) => {
   );
 };
 
+// Radius Selector Component
+const RadiusSelector: React.FC<{
+  selectedRadius: number | null;
+  onRadiusChange: (radius: number | null) => void;
+}> = ({ selectedRadius, onRadiusChange }) => {
+  const backgroundColor = useThemeColor({}, 'background');
+  const tintColor = useThemeColor({}, 'tint');
+  const iconColor = useThemeColor({}, 'icon');
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
+  const borderColor = useThemeColor({ light: 'rgba(0,0,0,0.1)', dark: 'rgba(255,255,255,0.1)' }, 'background');
+
+  const radiusOptions = [
+    { label: 'All', value: null },
+    { label: '10 miles', value: 10 },
+    { label: '25 miles', value: 25 },
+    { label: '50 miles', value: 50 },
+    { label: '100 miles', value: 100 },
+    { label: '200 miles', value: 200 },
+  ];
+
+  return (
+    <View style={[styles.radiusContainer, { backgroundColor, borderBottomColor: borderColor }]}>
+      <ThemedText style={styles.radiusLabel}>Search Radius:</ThemedText>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.radiusOptions}
+      >
+        {radiusOptions.map((option) => (
+          <TouchableOpacity
+            key={option.value ?? 'all'}
+            style={[
+              styles.radiusOption,
+              {
+                backgroundColor: selectedRadius === option.value ? tintColor : 'transparent',
+                borderColor: tintColor,
+              },
+            ]}
+            onPress={() => onRadiusChange(option.value)}
+          >
+            <ThemedText
+              style={[
+                styles.radiusOptionText,
+                {
+                  color: selectedRadius === option.value
+                    ? (isDark ? '#000' : 'white')
+                    : iconColor,
+                },
+              ]}
+            >
+              {option.label}
+            </ThemedText>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+    </View>
+  );
+};
+
 // Search and Filter Component
 const SearchAndFilter: React.FC = () => {
   const backgroundColor = useThemeColor({}, 'background');
   const iconColor = useThemeColor({}, 'icon');
+  const textColor = useThemeColor({}, 'text');
+  const borderColor = useThemeColor({ light: 'rgba(0,0,0,0.1)', dark: 'rgba(255,255,255,0.1)' }, 'background');
+  const searchBgColor = useThemeColor({ light: 'rgba(0,0,0,0.05)', dark: 'rgba(255,255,255,0.05)' }, 'background');
+  const filterBgColor = useThemeColor({ light: 'rgba(0,0,0,0.05)', dark: 'rgba(255,255,255,0.05)' }, 'background');
 
   return (
-    <View style={[styles.searchContainer, { backgroundColor }]}>
+    <View style={[styles.searchContainer, { backgroundColor, borderBottomColor: borderColor }]}>
       {/* Search Bar */}
-      <View style={styles.searchBar}>
+      <View style={[styles.searchBar, { backgroundColor: searchBgColor }]}>
         <IconSymbol name="magnifyingglass" size={20} color={iconColor} />
         <TextInput
-          style={styles.searchInput}
+          style={[styles.searchInput, { color: textColor }]}
           placeholder="Search boutiques, brands, styles..."
           placeholderTextColor={iconColor}
         />
@@ -214,19 +194,19 @@ const SearchAndFilter: React.FC = () => {
 
       {/* Filter Buttons */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
-        <TouchableOpacity style={styles.filterButton}>
+        <TouchableOpacity style={[styles.filterButton, { backgroundColor: filterBgColor }]}>
           <ThemedText style={styles.filterButtonText}>All</ThemedText>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.filterButton}>
+        <TouchableOpacity style={[styles.filterButton, { backgroundColor: filterBgColor }]}>
           <ThemedText style={styles.filterButtonText}>Dresses</ThemedText>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.filterButton}>
+        <TouchableOpacity style={[styles.filterButton, { backgroundColor: filterBgColor }]}>
           <ThemedText style={styles.filterButtonText}>Outerwear</ThemedText>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.filterButton}>
+        <TouchableOpacity style={[styles.filterButton, { backgroundColor: filterBgColor }]}>
           <ThemedText style={styles.filterButtonText}>Shoes</ThemedText>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.filterButton}>
+        <TouchableOpacity style={[styles.filterButton, { backgroundColor: filterBgColor }]}>
           <ThemedText style={styles.filterButtonText}>Accessories</ThemedText>
         </TouchableOpacity>
       </ScrollView>
@@ -241,13 +221,85 @@ const SearchAndFilter: React.FC = () => {
  */
 export default function ShopScreen() {
   const backgroundColor = useThemeColor({}, 'background');
+  const tintColor = useThemeColor({}, 'tint');
+  const iconColor = useThemeColor({}, 'icon');
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
 
-  // Filter items by category for different sections
-  const featuredItem = mockBoutiqueData[0];
-  const dressesItems = mockBoutiqueData.filter(item => item.category === 'dress');
-  const outerwearItems = mockBoutiqueData.filter(item => item.category === 'outerwear');
-  const shoesItems = mockBoutiqueData.filter(item => item.category === 'shoes');
-  const accessoriesItems = mockBoutiqueData.filter(item => item.category === 'accessories');
+  // Radius selector state
+  const [selectedRadius, setSelectedRadius] = React.useState<number | null>(100);
+
+  // Get user location for location-based product recommendations (optional)
+  const { location } = useLocation({ autoRequest: false }); // Don't auto-request
+
+  // Fetch looks from API
+  const { data: apiLooks = [], refetch: refetchLooks, isFetching: isFetchingLooks } = usePublicLooks({ featured_only: false });
+
+  // Build shop products query options - only include lat/long if both are available
+  const shopProductsOptions = React.useMemo(() => {
+    const options: Parameters<typeof useShopProducts>[0] = {
+      radius_miles: selectedRadius,
+      limit: 50,
+    };
+
+    // Only include lat/long if both are available
+    if (location?.latitude != null && location?.longitude != null) {
+      options.latitude = location.latitude;
+      options.longitude = location.longitude;
+    }
+
+    return options;
+  }, [location?.latitude, location?.longitude, selectedRadius]);
+
+  // Fetch all shop products
+  const {
+    data: shopData,
+    isLoading: isLoadingProducts,
+    error: shopError,
+    refetch: refetchProducts,
+    isFetching: isFetchingProducts
+  } = useShopProducts(shopProductsOptions);
+
+  // Handle refresh
+  const [refreshing, setRefreshing] = React.useState(false);
+  const handleRefresh = React.useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([refetchProducts(), refetchLooks()]);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [refetchProducts, refetchLooks]);
+
+  // Map shop products to BoutiqueItem format
+  const allProducts = React.useMemo(() => {
+    if (!shopData?.items) return [];
+    return shopData.items.map(mapShopProductToBoutiqueItem);
+  }, [shopData]);
+
+  // Log categories for debugging
+  React.useEffect(() => {
+    if (allProducts.length > 0) {
+      const categories = allProducts.map(p => p.category);
+      const uniqueCategories = [...new Set(categories)];
+      console.log('[Shop Screen] Total products:', allProducts.length);
+      console.log('[Shop Screen] Categories found:', uniqueCategories);
+      console.log('[Shop Screen] Products by category:',
+        uniqueCategories.map(cat => ({
+          category: cat,
+          count: allProducts.filter(p => p.category === cat).length
+        }))
+      );
+    }
+  }, [allProducts]);
+
+  // Dynamically group products by category
+  const { groups: categoryGroups, sortedCategories } = React.useMemo(() => {
+    return groupProductsByCategory(allProducts);
+  }, [allProducts]);
+
+  // Featured item (first product)
+  const featuredItem = allProducts[0] || null;
 
   // Handler functions for header actions
   const handleSearchPress = () => {
@@ -262,8 +314,13 @@ export default function ShopScreen() {
 
   // Handler for navigating to shop category view
   const handleViewAll = (category: string) => {
-    // shop-category
-    router.push(`/wardrobe/category?category=${category}`);
+    router.push({
+      pathname: '/shop/category',
+      params: {
+        category,
+        radius_miles: selectedRadius?.toString() || '100',
+      },
+    });
   };
 
   return (
@@ -276,84 +333,95 @@ export default function ShopScreen() {
         notificationCount={2}
       />
 
-      <ScrollView style={styles.scrollContainer}>
+      <ScrollView
+        style={styles.scrollContainer}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing || isFetchingProducts || isFetchingLooks}
+            onRefresh={handleRefresh}
+            tintColor={tintColor}
+          />
+        }
+      >
         {/* Search and Filter Section */}
         <SearchAndFilter />
 
+        {/* Radius Selector */}
+        <RadiusSelector
+          selectedRadius={selectedRadius}
+          onRadiusChange={setSelectedRadius}
+        />
+
+        {/* Error State */}
+        {shopError && (
+          <View style={styles.errorContainer}>
+            <ThemedText style={[styles.errorText, { color: iconColor }]}>
+              Failed to load products. {shopError instanceof Error ? shopError.message : 'Please try again.'}
+            </ThemedText>
+            <TouchableOpacity
+              style={[styles.retryButton, { backgroundColor: tintColor }]}
+              onPress={() => refetchProducts()}
+            >
+              <ThemedText style={[styles.retryButtonText, { color: isDark ? '#000' : 'white' }]}>Retry</ThemedText>
+            </TouchableOpacity>
+          </View>
+        )}
+
         {/* Featured Boutique */}
-        <FeaturedBoutique item={featuredItem} />
+        {featuredItem && <FeaturedBoutique item={featuredItem} />}
 
         {/* Shop by Look Section */}
-        <View style={styles.sectionHeader}>
-          <ThemedText type="title" style={styles.sectionTitle}>Shop by Look</ThemedText>
-          <TouchableOpacity onPress={() => handleViewAll('all')}>
-            <ThemedText style={styles.viewAllText}>View All</ThemedText>
-          </TouchableOpacity>
-        </View>
+        {apiLooks.length > 0 && (
+          <LookCarousel
+            title="Shop by Look"
+            items={apiLooks}
+            onViewAll={() => router.push('/shop/looks')}
+          />
+        )}
 
-        {/* Dresses Section */}
-        <View style={styles.sectionHeader}>
-          <ThemedText type="subtitle" style={styles.categoryTitle}>Dresses</ThemedText>
-          <TouchableOpacity onPress={() => handleViewAll('dress')}>
-            <ThemedText style={styles.viewAllText}>View All</ThemedText>
-          </TouchableOpacity>
-        </View>
-        <FlatList
-          data={dressesItems}
-          horizontal
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <BoutiqueItemCard item={item} />}
-          contentContainerStyle={styles.horizontalList}
-          showsHorizontalScrollIndicator={false}
-        />
+        {/* Dynamically render category sections */}
+        {sortedCategories.map((categoryKey) => {
+          const categoryProducts = categoryGroups[categoryKey];
+          if (!categoryProducts || categoryProducts.length === 0) return null;
 
-        {/* Outerwear Section */}
-        <View style={styles.sectionHeader}>
-          <ThemedText type="subtitle" style={styles.categoryTitle}>Outerwear</ThemedText>
-          <TouchableOpacity onPress={() => handleViewAll('outerwear')}>
-            <ThemedText style={styles.viewAllText}>View All</ThemedText>
-          </TouchableOpacity>
-        </View>
-        <FlatList
-          data={outerwearItems}
-          horizontal
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <BoutiqueItemCard item={item} />}
-          contentContainerStyle={styles.horizontalList}
-          showsHorizontalScrollIndicator={false}
-        />
+          const displayName = getCategoryDisplayName(categoryKey);
+          // Use the first product's actual category for "View All" navigation
+          const firstProductCategory = categoryProducts[0]?.category || categoryKey;
 
-        {/* Shoes Section */}
-        <View style={styles.sectionHeader}>
-          <ThemedText type="subtitle" style={styles.categoryTitle}>Shoes</ThemedText>
-          <TouchableOpacity onPress={() => handleViewAll('shoes')}>
-            <ThemedText style={styles.viewAllText}>View All</ThemedText>
-          </TouchableOpacity>
-        </View>
-        <FlatList
-          data={shoesItems}
-          horizontal
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <BoutiqueItemCard item={item} />}
-          contentContainerStyle={styles.horizontalList}
-          showsHorizontalScrollIndicator={false}
-        />
+          return (
+            <React.Fragment key={categoryKey}>
+              <View style={styles.sectionHeader}>
+                <ThemedText type="subtitle" style={styles.categoryTitle}>
+                  {displayName} ({categoryProducts.length})
+                </ThemedText>
+                <TouchableOpacity onPress={() => handleViewAll(firstProductCategory)}>
+                  <ThemedText style={styles.viewAllText}>View All</ThemedText>
+                </TouchableOpacity>
+              </View>
+              {isLoadingProducts ? (
+                <ActivityIndicator size="small" color={tintColor} style={{ marginVertical: 20 }} />
+              ) : (
+                <FlatList
+                  data={categoryProducts}
+                  horizontal
+                  keyExtractor={(item) => item.id}
+                  renderItem={({ item }) => <BoutiqueItemCard item={item} />}
+                  contentContainerStyle={styles.horizontalList}
+                  showsHorizontalScrollIndicator={false}
+                />
+              )}
+            </React.Fragment>
+          );
+        })}
 
-        {/* Accessories Section */}
-        <View style={styles.sectionHeader}>
-          <ThemedText type="subtitle" style={styles.categoryTitle}>Accessories</ThemedText>
-          <TouchableOpacity onPress={() => handleViewAll('accessories')}>
-            <ThemedText style={styles.viewAllText}>View All</ThemedText>
-          </TouchableOpacity>
-        </View>
-        <FlatList
-          data={accessoriesItems}
-          horizontal
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <BoutiqueItemCard item={item} />}
-          contentContainerStyle={styles.horizontalList}
-          showsHorizontalScrollIndicator={false}
-        />
+        {/* Show message if no products */}
+        {!isLoadingProducts && allProducts.length === 0 && !shopError && (
+          <View style={styles.emptyContainer}>
+            <ThemedText style={[styles.emptyText, { color: iconColor }]}>
+              No products found. Try adjusting your search radius.
+            </ThemedText>
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -370,12 +438,54 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.1)',
+  },
+  radiusContainer: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+  },
+  radiusLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  radiusOptions: {
+    gap: 8,
+  },
+  radiusOption: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    marginRight: 8,
+  },
+  radiusOptionText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  errorContainer: {
+    padding: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 200,
+  },
+  errorText: {
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  retryButton: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
   },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.05)',
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
@@ -393,7 +503,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     marginRight: 12,
-    backgroundColor: 'rgba(0,0,0,0.05)',
     borderRadius: 20,
   },
   filterButtonText: {
@@ -452,7 +561,6 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   featuredButtonText: {
-    color: 'white',
     fontSize: 14,
     fontWeight: '600',
   },
@@ -539,9 +647,97 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   tryOnButtonText: {
-    color: 'white',
     fontSize: 12,
     fontWeight: '600',
     marginLeft: 4,
+  },
+  lookCard: {
+    width: 280,
+    marginRight: 16,
+    borderRadius: 12,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  lookImage: {
+    width: '100%',
+    height: 300,
+    resizeMode: 'cover',
+  },
+  lookBoutiqueLogo: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    overflow: 'hidden',
+    backgroundColor: 'white',
+    padding: 2,
+  },
+  styleBadge: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  styleBadgeText: {
+    color: 'white',
+    fontSize: 10,
+    fontWeight: '600',
+    textTransform: 'capitalize',
+  },
+  lookDetails: {
+    padding: 12,
+  },
+  lookTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  lookDescription: {
+    fontSize: 12,
+    opacity: 0.7,
+    marginBottom: 8,
+    lineHeight: 16,
+  },
+  lookItemsInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    gap: 4,
+  },
+  lookItemsCount: {
+    fontSize: 11,
+    opacity: 0.7,
+  },
+  lookPrice: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  shopLookButton: {
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  shopLookButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  emptyContainer: {
+    padding: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyText: {
+    fontSize: 16,
+    textAlign: 'center',
   },
 });

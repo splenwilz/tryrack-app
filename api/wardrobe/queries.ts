@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createMutationHook, createQueryHook } from "../utils/query-helpers";
-import { createWardrobeItem, deleteWardrobeItem, extractWardrobeMetadata, generateVirtualTryOn, generateWardrobeImage, getVirtualTryOn, getVirtualTryOns, getWardrobeItem, getWardrobeItems, markAsWorn, saveVirtualTryOn, updateWardrobeItem, type GetWardrobeItemsOptions } from "./services";
+import { createWardrobeItem, deleteWardrobeItem, deleteVirtualTryOn, extractWardrobeMetadata, generateVirtualTryOn, generateWardrobeImage, getVirtualTryOn, getVirtualTryOns, getWardrobeItem, getWardrobeItems, markAsWorn, saveVirtualTryOn, updateWardrobeItem, type GetWardrobeItemsOptions } from "./services";
 import type { CreateWardrobeItemRequest, ExtractWardrobeItemRequest, SaveVirtualTryOnRequest, SaveVirtualTryOnResponse, UpdateWardrobeItemRequest, VirtualTryOnRequest, VirtualTryOnResponse, WardrobeItemResponse, WardrobeMetadata } from "./types";
 import { queryKeys } from "../utils/query-keys";
 
@@ -38,6 +38,23 @@ export function useGetVirtualTryOn(id?: string | number, options?: { enabled?: b
             enabled,
         }
     )();
+}
+
+/**
+ * Hook to delete a virtual try-on session
+ */
+export function useDeleteVirtualTryOn() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (sessionId: string | number) => deleteVirtualTryOn(sessionId),
+        onSuccess: (_, sessionId) => {
+            // Invalidate all virtual try-on queries to refresh the list
+            queryClient.invalidateQueries({ queryKey: queryKeys.virtualTryOn.all() });
+            // Remove the specific session from cache if it exists
+            queryClient.removeQueries({ queryKey: queryKeys.virtualTryOn.byId(Number(sessionId)) });
+        },
+    });
 }
 
 export const useCreateWardrobeItem = createMutationHook<

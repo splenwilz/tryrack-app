@@ -30,6 +30,7 @@ export default function RootLayout() {
           <Stack.Screen name="privacy-policy" options={{ headerShown: false }} />
           <Stack.Screen name="onboarding/index" options={{ headerShown: false }} />
           <Stack.Screen name="onboarding/profile-completion" options={{ headerShown: false }} />
+          <Stack.Screen name="onboarding/boutique-profile" options={{ headerShown: false }} />
           <Stack.Screen name="wardrobe/manage-item" options={{ headerShown: false }} />
           <Stack.Screen name="wardrobe/item_detail" options={{ headerShown: false }} />
           <Stack.Screen name="wardrobe/category" options={{ headerShown: false }} />
@@ -38,6 +39,12 @@ export default function RootLayout() {
           <Stack.Screen name="wardrobe/tryon_detail" options={{ headerShown: false }} />
           <Stack.Screen name="tryon_history" options={{ headerShown: false }} />
           <Stack.Screen name="catalog/category" options={{ headerShown: false }} />
+          <Stack.Screen name="orders/category" options={{ headerShown: false }} />
+          <Stack.Screen name="shop/looks" options={{ headerShown: false }} />
+          <Stack.Screen name="shop/category" options={{ headerShown: false }} />
+          <Stack.Screen name="(boutique_tabs)/looks/detail" options={{ headerShown: false }} />
+          <Stack.Screen name="catalog/product_detail" options={{ headerShown: false }} />
+          <Stack.Screen name="catalog/look_detail" options={{ headerShown: false }} />
         </Stack>
         <StatusBar style="auto" />
       </ThemeProvider>

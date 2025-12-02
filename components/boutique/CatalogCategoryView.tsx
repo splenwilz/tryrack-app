@@ -13,6 +13,7 @@ import { ThemedText } from '@/components/themed-text';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { router } from 'expo-router';
 import { CustomHeader } from '@/components/custom-header';
+import { IconSymbol } from '@/components/ui/icon-symbol';
 
 interface CatalogItem {
     id: string;
@@ -23,6 +24,12 @@ interface CatalogItem {
     tags: string[];
     status: string;
     created_at?: string;
+    brand?: string;
+    price?: number;
+    boutique?: {
+        name?: string;
+        logo?: string;
+    };
 }
 
 interface CatalogCategoryViewProps {
@@ -39,30 +46,87 @@ interface CatalogCategoryViewProps {
  */
 const CatalogProductCard: React.FC<{ item: CatalogItem; onPress?: (itemId: string) => void }> = ({ item, onPress }) => {
     const backgroundColor = useThemeColor({}, 'background');
-    const borderColor = useThemeColor({}, 'tabIconDefault');
+    const tintColor = useThemeColor({}, 'tint');
 
-    const handlePress = () => {
+    const handleViewItem = () => {
         if (onPress) {
             onPress(item.id);
         } else {
-            // Default: navigate to edit product (since catalog is for boutique owners)
+            // Default: navigate to product detail view
             router.push({
-                pathname: '/(boutique_tabs)/catalog',
-                params: { editProductId: item.id },
+                pathname: '/catalog/product_detail',
+                params: { productId: item.id, source: 'catalog' },
             });
         }
     };
 
+    const handleTryOn = (e: { stopPropagation: () => void }) => {
+        e.stopPropagation();
+
+        // Prepare boutique item data for virtual try-on
+        const boutiqueItem = {
+            id: item.id,
+            title: item.title,
+            brand: item.brand || 'Unknown Brand',
+            category: item.category,
+            imageUrl: item.imageUrl,
+            price: item.price || 0,
+            colors: item.colors || [],
+            tags: item.tags || [],
+            boutique: {
+                id: 'shop',
+                name: item.boutique?.name || 'Shop',
+                logo: item.boutique?.logo || '',
+            },
+            arAvailable: true,
+        };
+
+        // Navigate to virtual try-on with product data
+        router.push({
+            pathname: '/wardrobe/virtual_tryon',
+            params: {
+                itemType: 'boutique',
+                itemData: JSON.stringify(boutiqueItem),
+            },
+        });
+    };
+
+
     return (
         <TouchableOpacity
-            style={[styles.itemCard, { backgroundColor, borderColor }]}
-            onPress={handlePress}
+            style={[styles.itemCard, { backgroundColor }]}
+            onPress={handleViewItem}
             activeOpacity={0.7}
         >
             <Image source={{ uri: item.imageUrl }} style={styles.itemImage} />
-            <ThemedText style={styles.itemTitle} numberOfLines={2}>
-                {item.title}
-            </ThemedText>
+
+            {/* Boutique Logo */}
+            {item.boutique?.logo && (
+                <View style={styles.boutiqueLogo}>
+                    <Image source={{ uri: item.boutique.logo }} style={styles.logoImage} />
+                </View>
+            )}
+
+            <View style={styles.itemDetails}>
+                {item.brand && (
+                    <ThemedText style={styles.brandName}>{item.brand}</ThemedText>
+                )}
+                <ThemedText style={styles.itemTitle} numberOfLines={2}>
+                    {item.title}
+                </ThemedText>
+                {item.price !== undefined && (
+                    <ThemedText style={styles.price}>₦{item.price.toLocaleString()}</ThemedText>
+                )}
+
+                {/* Action Buttons */}
+                <TouchableOpacity
+                    style={[styles.actionButton, styles.tryOnButton, { backgroundColor: tintColor }]}
+                    onPress={handleTryOn}
+                >
+                    <IconSymbol name="plus" size={14} color="white" />
+                    <ThemedText style={styles.actionButtonText}>Try Virtually</ThemedText>
+                </TouchableOpacity>
+            </View>
         </TouchableOpacity>
     );
 };
@@ -218,7 +282,6 @@ const styles = StyleSheet.create({
         width: '48%',
         borderRadius: 12,
         overflow: 'hidden',
-        borderWidth: 1,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
@@ -230,10 +293,59 @@ const styles = StyleSheet.create({
         height: 200,
         resizeMode: 'cover',
     },
-    itemTitle: {
+    boutiqueLogo: {
+        position: 'absolute',
+        top: 8,
+        right: 8,
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+        padding: 2,
+        zIndex: 1,
+    },
+    logoImage: {
+        width: '100%',
+        height: '100%',
+        borderRadius: 14,
+        resizeMode: 'cover',
+    },
+    itemDetails: {
         padding: 12,
+    },
+    brandName: {
+        fontSize: 12,
+        fontWeight: '600',
+        opacity: 0.7,
+        marginBottom: 4,
+    },
+    itemTitle: {
         fontSize: 14,
         fontWeight: '500',
+        marginBottom: 6,
+    },
+    price: {
+        fontSize: 16,
+        fontWeight: '700',
+        marginBottom: 8,
+    },
+    actionButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+        borderRadius: 8,
+        gap: 6,
+        marginTop: 4,
+    },
+    tryOnButton: {
+        // backgroundColor set inline
+    },
+    actionButtonText: {
+        fontSize: 10,
+        fontWeight: '600',
+        color: 'white',
     },
 });
 

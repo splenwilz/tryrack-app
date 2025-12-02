@@ -27,8 +27,7 @@ export default function OnboardingScreen() {
         if (type === 'individual') {
             router.push('/onboarding/profile-completion');
         } else {
-            // TODO: Implement boutique profile completion
-            router.push('/onboarding/profile-completion');
+            router.push('/onboarding/boutique-profile');
         }
     };
 
