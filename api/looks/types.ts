@@ -26,7 +26,7 @@ export const UpdateLookRequestSchema = CreateLookRequestSchema.partial();
  */
 export const LookResponseSchema = z.object({
     id: z.number(),
-    user_id: z.string(),
+    boutique_id: z.number(),
     title: z.string(),
     description: z.string().nullable(),
     style: z.string(),

@@ -94,6 +94,16 @@ const FeaturedBoutique: React.FC<{ item: BoutiqueItem }> = ({ item }) => {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
 
+  const handleExploreCollection = () => {
+    // Navigate to boutique collection view
+    // For now, use a generic boutique ID since we don't have it in the item
+    // In real implementation, this would come from the API
+    router.push({
+      pathname: '/explore/boutique-collection',
+      params: { boutiqueId: item.boutique.id || '1' },
+    });
+  };
+
   return (
     <TouchableOpacity style={[styles.featuredCard, { backgroundColor }]}>
       <Image source={{ uri: item.imageUrl }} style={styles.featuredImage} />
@@ -102,7 +112,10 @@ const FeaturedBoutique: React.FC<{ item: BoutiqueItem }> = ({ item }) => {
           <ThemedText style={styles.featuredTitle}>Featured Boutique</ThemedText>
           <ThemedText style={styles.featuredBoutique}>{item.boutique.name}</ThemedText>
           <ThemedText style={styles.featuredItem}>{item.title}</ThemedText>
-          <TouchableOpacity style={[styles.featuredButton, { backgroundColor: tintColor }]}>
+          <TouchableOpacity
+            style={[styles.featuredButton, { backgroundColor: tintColor }]}
+            onPress={handleExploreCollection}
+          >
             <ThemedText style={[styles.featuredButtonText, { color: isDark ? '#000' : 'white' }]}>Explore Collection</ThemedText>
           </TouchableOpacity>
         </View>
@@ -369,6 +382,23 @@ export default function ShopScreen() {
 
         {/* Featured Boutique */}
         {featuredItem && <FeaturedBoutique item={featuredItem} />}
+
+        {/* Explore Boutiques Section */}
+        <TouchableOpacity
+          style={[styles.exploreBoutiquesCard, { backgroundColor }]}
+          onPress={() => router.push('/explore/boutiques')}
+          activeOpacity={0.7}
+        >
+          <View style={styles.exploreBoutiquesContent}>
+            <View style={styles.exploreBoutiquesText}>
+              <ThemedText style={styles.exploreBoutiquesTitle}>Explore Boutique Collections</ThemedText>
+              <ThemedText style={[styles.exploreBoutiquesSubtitle, { color: iconColor }]}>
+                Discover unique fashion from curated boutiques
+              </ThemedText>
+            </View>
+            <IconSymbol name="arrow.right" size={24} color={tintColor} />
+          </View>
+        </TouchableOpacity>
 
         {/* Shop by Look Section */}
         {apiLooks.length > 0 && (
@@ -739,5 +769,36 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     textAlign: 'center',
+  },
+  exploreBoutiquesCard: {
+    marginHorizontal: 20,
+    marginVertical: 16,
+    borderRadius: 12,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.1)',
+  },
+  exploreBoutiquesContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  exploreBoutiquesText: {
+    flex: 1,
+    marginRight: 12,
+  },
+  exploreBoutiquesTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  exploreBoutiquesSubtitle: {
+    fontSize: 14,
+    lineHeight: 20,
   },
 });

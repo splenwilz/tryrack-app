@@ -22,6 +22,7 @@ import { CURRENCIES, LANGUAGES } from '@/constants/boutique';
  */
 export default function BoutiqueProfileScreen() {
     const backgroundColor = useThemeColor({}, 'background');
+    const cardBg = useThemeColor({ light: '#ffffff', dark: '#1c1c1e' }, 'background');
     const tintColor = useThemeColor({}, 'tint');
     const iconColor = useThemeColor({}, 'icon');
     const textColor = useThemeColor({}, 'text');
@@ -54,6 +55,11 @@ export default function BoutiqueProfileScreen() {
     // Logo state
     const [logoLocalUri, setLogoLocalUri] = useState<string | undefined>(undefined);
     const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+
+    // Cover image state
+    const [coverLocalUri, setCoverLocalUri] = useState<string | undefined>(undefined);
+    const [isUploadingCover, setIsUploadingCover] = useState(false);
+
     const [isSaving, setIsSaving] = useState(false);
 
     // Picker modals state
@@ -83,6 +89,105 @@ export default function BoutiqueProfileScreen() {
 
     const handleBackPress = () => {
         router.back();
+    };
+
+    const handleCoverImageUpload = async () => {
+        try {
+            setIsUploadingCover(true);
+
+            // Request media library permissions
+            const { status: mediaStatus } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+            if (mediaStatus !== 'granted') {
+                Alert.alert(
+                    'Permission Required',
+                    'We need access to your photos to upload images. Please enable photo library access in your device settings.',
+                    [{ text: 'OK' }]
+                );
+                setIsUploadingCover(false);
+                return;
+            }
+
+            // Show options (Camera or Gallery)
+            Alert.alert(
+                'Add Cover Image',
+                'Choose an option',
+                [
+                    { text: 'Cancel', style: 'cancel', onPress: () => setIsUploadingCover(false) },
+                    {
+                        text: 'Take Photo',
+                        onPress: async () => {
+                            try {
+                                const { status: cameraStatus } = await ImagePicker.requestCameraPermissionsAsync();
+                                if (cameraStatus !== 'granted') {
+                                    Alert.alert(
+                                        'Permission Required',
+                                        'Camera access is required to take photos. Please enable camera access in your device settings.',
+                                        [{ text: 'OK' }]
+                                    );
+                                    setIsUploadingCover(false);
+                                    return;
+                                }
+
+                                const result = await ImagePicker.launchCameraAsync({
+                                    mediaTypes: 'images',
+                                    allowsEditing: true,
+                                    aspect: [16, 9], // Cover images are typically wider
+                                    quality: 0.7,
+                                });
+
+                                if (!result.canceled && result.assets && result.assets.length > 0) {
+                                    const asset = result.assets[0];
+                                    if (asset.fileSize && asset.fileSize > 10 * 1024 * 1024) {
+                                        Alert.alert('File Too Large', 'Image must be smaller than 10MB. Please choose a smaller image.');
+                                        setIsUploadingCover(false);
+                                        return;
+                                    }
+                                    setCoverLocalUri(asset.uri);
+                                }
+                                setIsUploadingCover(false);
+                            } catch (error) {
+                                console.error('Camera error:', error);
+                                Alert.alert('Error', 'Failed to open camera. Please try again.');
+                                setIsUploadingCover(false);
+                            }
+                        },
+                    },
+                    {
+                        text: 'Choose from Gallery',
+                        onPress: async () => {
+                            try {
+                                const result = await ImagePicker.launchImageLibraryAsync({
+                                    mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                                    allowsEditing: true,
+                                    aspect: [16, 9], // Cover images are typically wider
+                                    quality: 0.7,
+                                });
+
+                                if (!result.canceled && result.assets && result.assets.length > 0) {
+                                    const asset = result.assets[0];
+                                    if (asset.fileSize && asset.fileSize > 10 * 1024 * 1024) {
+                                        Alert.alert('File Too Large', 'Image must be smaller than 10MB. Please choose a smaller image.');
+                                        setIsUploadingCover(false);
+                                        return;
+                                    }
+                                    setCoverLocalUri(asset.uri);
+                                }
+                                setIsUploadingCover(false);
+                            } catch (error) {
+                                console.error('Image picker error:', error);
+                                Alert.alert('Error', 'Failed to open image library. Please try again.');
+                                setIsUploadingCover(false);
+                            }
+                        },
+                    },
+                ],
+                { cancelable: true, onDismiss: () => setIsUploadingCover(false) }
+            );
+        } catch (error) {
+            console.error('Cover image upload error:', error);
+            Alert.alert('Error', 'An unexpected error occurred. Please try again.');
+            setIsUploadingCover(false);
+        }
     };
 
     const handleImageUpload = async () => {
@@ -216,6 +321,35 @@ export default function BoutiqueProfileScreen() {
                 }
             }
 
+            // Upload cover image to S3 if a local image was selected
+            let coverImageUrl: string | undefined = profile?.cover_image_url || undefined;
+
+            if (coverLocalUri) {
+                try {
+                    setIsUploadingCover(true);
+                    console.log('[Boutique Profile] Uploading cover image to S3...');
+                    coverImageUrl = await uploadImage({
+                        imageUri: coverLocalUri,
+                        folder: 'boutique-covers',
+                    });
+                    console.log('[Boutique Profile] Cover image uploaded successfully:', coverImageUrl);
+                } catch (uploadError) {
+                    console.error('[Boutique Profile] Cover image upload failed:', uploadError);
+                    Alert.alert(
+                        'Upload Error',
+                        'Failed to upload cover image. Please try again or continue without updating the cover image.',
+                        [
+                            { text: 'Continue Without Cover', onPress: () => { } },
+                            { text: 'Cancel', style: 'cancel', onPress: () => setIsSaving(false) },
+                        ]
+                    );
+                    setIsUploadingCover(false);
+                    return;
+                } finally {
+                    setIsUploadingCover(false);
+                }
+            }
+
             // Build social media object (only include non-empty values)
             const socialMedia: Record<string, string> = {};
             if (boutiqueInfo.socialLinks.instagram.trim()) {
@@ -238,6 +372,7 @@ export default function BoutiqueProfileScreen() {
                 business_website: boutiqueInfo.website.trim() || undefined,
                 business_social_media: Object.keys(socialMedia).length > 0 ? socialMedia : undefined,
                 logo_url: logoUrl,
+                cover_image_url: coverImageUrl,
                 currency: boutiqueInfo.currency.trim() || undefined,
                 language: boutiqueInfo.language.trim() || undefined,
             };
@@ -252,8 +387,9 @@ export default function BoutiqueProfileScreen() {
                 queryKey: queryKeys.boutiqueProfile.current(),
             });
 
-            // Clear local logo URI since it's now uploaded
+            // Clear local image URIs since they're now uploaded
             setLogoLocalUri(undefined);
+            setCoverLocalUri(undefined);
 
             Alert.alert('Success', 'Boutique profile updated successfully!');
         } catch (error) {
@@ -413,36 +549,74 @@ export default function BoutiqueProfileScreen() {
                         Business Profile
                     </ThemedText>
 
-                    {/* Business Logo */}
-                    <View style={styles.logoContainer}>
-                        {(logoLocalUri || profile?.logo_url) ? (
-                            <Image
-                                source={{ uri: logoLocalUri || profile?.logo_url || '' }}
-                                style={styles.logoImage}
-                            />
-                        ) : (
-                            <View style={[styles.logoPlaceholder, { backgroundColor: tintColor + '20' }]}>
-                                <IconSymbol name="building.2.fill" size={40} color={tintColor} />
-                            </View>
-                        )}
-                        <TouchableOpacity
-                            style={[
-                                styles.editButton,
-                                { backgroundColor: isDark ? '#0a7ea4' : tintColor },
-                            ]}
-                            onPress={handleImageUpload}
-                            disabled={isUploadingLogo}
-                        >
-                            {isUploadingLogo ? (
-                                <ActivityIndicator size="small" color="#fff" />
+                    {/* Cover Image with Overlapping Logo */}
+                    <View style={styles.coverAndLogoContainer}>
+                        {/* Cover Image */}
+                        <View style={styles.coverImageWrapper}>
+                            {(coverLocalUri || profile?.cover_image_url) ? (
+                                <Image
+                                    source={{ uri: coverLocalUri || profile?.cover_image_url || '' }}
+                                    style={styles.coverImage}
+                                />
                             ) : (
-                                <>
-                                    <IconSymbol name="pencil" size={16} color="#fff" />
-                                    <ThemedText style={styles.editButtonText}>Edit Logo</ThemedText>
-                                </>
+                                <View style={[styles.coverPlaceholder, { backgroundColor: tintColor + '20' }]}>
+                                    <IconSymbol name="photo.fill" size={40} color={tintColor} />
+                                    <ThemedText style={[styles.coverPlaceholderText, { color: iconColor }]}>
+                                        No cover image
+                                    </ThemedText>
+                                </View>
                             )}
-                        </TouchableOpacity>
+
+                            {/* Cover Edit Button */}
+                            <TouchableOpacity
+                                style={[
+                                    styles.coverEditButton,
+                                    { backgroundColor: isDark ? 'rgba(0,0,0,0.6)' : 'rgba(255,255,255,0.9)' },
+                                ]}
+                                onPress={handleCoverImageUpload}
+                                disabled={isUploadingCover}
+                            >
+                                {isUploadingCover ? (
+                                    <ActivityIndicator size="small" color={isDark ? '#fff' : tintColor} />
+                                ) : (
+                                    <IconSymbol name="pencil" size={16} color={isDark ? '#fff' : tintColor} />
+                                )}
+                            </TouchableOpacity>
+                        </View>
+
+                        {/* Logo - Overlapping Cover Image */}
+                        <View style={[styles.logoContainer, { backgroundColor: cardBg }]}>
+                            {(logoLocalUri || profile?.logo_url) ? (
+                                <Image
+                                    source={{ uri: logoLocalUri || profile?.logo_url || '' }}
+                                    style={styles.logoImage}
+                                />
+                            ) : (
+                                <View style={[styles.logoPlaceholder, { backgroundColor: tintColor + '20' }]}>
+                                    <IconSymbol name="building.2.fill" size={32} color={tintColor} />
+                                </View>
+                            )}
+
+                            {/* Logo Edit Button */}
+                            <TouchableOpacity
+                                style={[
+                                    styles.logoEditButton,
+                                    { backgroundColor: isDark ? '#0a7ea4' : tintColor },
+                                ]}
+                                onPress={handleImageUpload}
+                                disabled={isUploadingLogo}
+                            >
+                                {isUploadingLogo ? (
+                                    <ActivityIndicator size="small" color="#fff" />
+                                ) : (
+                                    <IconSymbol name="pencil" size={12} color="#fff" />
+                                )}
+                            </TouchableOpacity>
+                        </View>
                     </View>
+
+                    {/* Spacer for overlapping logo */}
+                    <View style={styles.logoSpacer} />
 
                     {/* Business Information */}
                     <View style={styles.infoRow}>
@@ -806,10 +980,10 @@ export default function BoutiqueProfileScreen() {
                         style={[
                             styles.saveButton,
                             { backgroundColor: isDark ? '#0a7ea4' : tintColor },
-                            (isSaving || isUploadingLogo || updateProfileMutation.isPending) && styles.saveButtonDisabled
+                            (isSaving || isUploadingLogo || isUploadingCover || updateProfileMutation.isPending) && styles.saveButtonDisabled
                         ]}
                         onPress={handleSaveChanges}
-                        disabled={isSaving || isUploadingLogo || updateProfileMutation.isPending}
+                        disabled={isSaving || isUploadingLogo || isUploadingCover || updateProfileMutation.isPending}
                     >
                         {(isSaving || isUploadingLogo || updateProfileMutation.isPending) ? (
                             <ActivityIndicator size="small" color="#fff" />
@@ -892,30 +1066,98 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         marginBottom: 16,
     },
-    logoContainer: {
-        alignItems: 'center',
+    coverAndLogoContainer: {
+        position: 'relative',
+        width: '100%',
         marginBottom: 24,
+        borderRadius: 12,
+        overflow: 'visible',
+    },
+    coverImage: {
+        width: '100%',
+        height: 160,
+        resizeMode: 'cover',
+        borderRadius: 12,
+    },
+    coverImageWrapper: {
+        position: 'relative',
+        width: '100%',
+        borderRadius: 12,
+        overflow: 'hidden',
+    },
+    coverPlaceholder: {
+        width: '100%',
+        height: 160,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderRadius: 12,
+        borderWidth: 2,
+        borderStyle: 'dashed',
+        borderColor: 'rgba(0,0,0,0.2)',
+    },
+    coverPlaceholderText: {
+        marginTop: 8,
+        fontSize: 14,
+    },
+    coverEditButton: {
+        position: 'absolute',
+        top: 12,
+        right: 12,
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+        elevation: 4,
+    },
+    logoContainer: {
+        position: 'absolute',
+        bottom: -40,
+        left: 16,
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        borderWidth: 3,
+        borderColor: '#fff',
+        overflow: 'hidden',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+        elevation: 4,
     },
     logoImage: {
-        width: 100,
-        height: 100,
-        borderRadius: 50,
-        marginBottom: 12,
-        borderWidth: 3,
-        borderColor: 'rgba(0,0,0,0.1)',
+        width: '100%',
+        height: '100%',
+        resizeMode: 'cover',
     },
-    editButton: {
-        flexDirection: 'row',
+    logoPlaceholder: {
+        width: '100%',
+        height: '100%',
+        justifyContent: 'center',
         alignItems: 'center',
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-        borderRadius: 20,
-        gap: 6,
     },
-    editButtonText: {
-        color: 'white',
-        fontSize: 14,
-        fontWeight: '600',
+    logoEditButton: {
+        position: 'absolute',
+        bottom: 4,
+        right: 4,
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.3,
+        shadowRadius: 2,
+        elevation: 3,
+    },
+    logoSpacer: {
+        height: 48, // Space for overlapping logo
     },
     infoRow: {
         marginBottom: 16,
@@ -1008,14 +1250,6 @@ const styles = StyleSheet.create({
     logoutText: {
         fontSize: 16,
         fontWeight: '600',
-    },
-    logoPlaceholder: {
-        width: 100,
-        height: 100,
-        borderRadius: 50,
-        marginBottom: 12,
-        justifyContent: 'center',
-        alignItems: 'center',
     },
     saveButtonDisabled: {
         opacity: 0.6,

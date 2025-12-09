@@ -97,7 +97,7 @@ export const queryKeys = {
     /**
      * Catalog products list with optional filters
      */
-    products: (options?: { category?: string | null; brand?: string | null; status?: string | null; skip?: number; limit?: number }) =>
+    products: (options?: { category?: string | null; brand?: string | null; status?: string | null; boutique_id?: number | null; skip?: number; limit?: number }) =>
       ['catalog', 'products', options] as const,
 
     /**
@@ -114,6 +114,39 @@ export const queryKeys = {
      * Get current user's boutique profile
      */
     current: () => ['boutique-profile', 'current'] as const,
+  },
+
+  /**
+   * Boutiques-related query keys (boutique-centric endpoints)
+   */
+  boutiques: {
+    /**
+     * All boutique queries
+     */
+    all: () => ['boutiques'] as const,
+
+    /**
+     * Boutiques list with optional filters
+     */
+    list: (options?: { featured?: boolean | null; latitude?: number | null; longitude?: number | null; radius_miles?: number | null; skip?: number; limit?: number }) =>
+      ['boutiques', 'list', options] as const,
+
+    /**
+     * Boutique by ID
+     */
+    byId: (boutiqueId: string | number) => ['boutiques', boutiqueId] as const,
+
+    /**
+     * Boutique items/products with optional filters
+     */
+    items: (boutiqueId: string | number, options?: { category?: string | null; brand?: string | null; status?: string | null; skip?: number; limit?: number }) =>
+      ['boutiques', boutiqueId, 'items', options] as const,
+
+    /**
+     * Boutique looks with optional filters
+     */
+    looks: (boutiqueId: string | number, options?: { style?: string | null; is_featured?: boolean | null; skip?: number; limit?: number }) =>
+      ['boutiques', boutiqueId, 'looks', options] as const,
   },
 
   /**
@@ -156,6 +189,22 @@ export const queryKeys = {
      */
     products: (options?: { category?: string | null; radius_miles?: number | null; latitude?: number | null; longitude?: number | null; limit?: number | null }) =>
       ['shop', 'products', options] as const,
+  },
+
+  /**
+   * Reviews-related query keys
+   */
+  reviews: {
+    /**
+     * All reviews queries
+     */
+    all: () => ['reviews'] as const,
+
+    /**
+     * Reviews list with optional filters (item_type, item_id, user_id, pagination)
+     */
+    list: (options: { item_type: 'product' | 'boutique'; item_id: string; user_id?: string | null; skip?: number; limit?: number }) =>
+      ['reviews', 'list', options] as const,
   },
 } as const;
 

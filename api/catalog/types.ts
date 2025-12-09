@@ -44,6 +44,7 @@ export interface GetCatalogProductsOptions {
     category?: string | null;
     brand?: string | null;
     status?: string | null;
+    boutique_id?: number | null; // Filter by boutique ID (replaces deprecated user_id)
     skip?: number;
     limit?: number;
 }

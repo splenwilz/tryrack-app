@@ -44,6 +44,10 @@ export default function RootLayout() {
           <Stack.Screen name="shop/category" options={{ headerShown: false }} />
           <Stack.Screen name="catalog/product_detail" options={{ headerShown: false }} />
           <Stack.Screen name="catalog/look_detail" options={{ headerShown: false }} />
+          <Stack.Screen name="explore/boutiques" options={{ headerShown: false }} />
+          <Stack.Screen name="explore/boutique-collection" options={{ headerShown: false }} />
+          <Stack.Screen name="reviews/index" options={{ headerShown: false }} />
+          <Stack.Screen name="reviews/add-review" options={{ headerShown: false }} />
         </Stack>
         <StatusBar style="auto" />
       </ThemeProvider>

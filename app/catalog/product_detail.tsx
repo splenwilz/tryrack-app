@@ -17,6 +17,7 @@ import { CustomHeader } from '@/components/custom-header';
 import { useCatalogProduct, useDeleteCatalogProduct } from '@/api/catalog/queries';
 import { mapFromBackendResponse } from '@/utils/catalog';
 import { ApiError } from '@/api/client';
+import { useReviews } from '@/api/reviews/queries';
 
 export default function ProductDetailScreen() {
     const backgroundColor = useThemeColor({}, 'background');
@@ -35,8 +36,25 @@ export default function ProductDetailScreen() {
     // 'shop' = individual user browsing, 'catalog' = boutique owner managing products
     const isFromCatalog = source === 'catalog';
 
+    // Fetch reviews for the product (only for shop view)
+    const { data: reviews = [], isLoading: isLoadingReviews } = useReviews({
+        item_type: 'product',
+        item_id: productId || '',
+        limit: 1, // Only fetch first review for preview
+        enabled: !isFromCatalog && !!productId, // Only fetch if not from catalog and productId exists
+    });
+
     const product = apiProduct ? mapFromBackendResponse(apiProduct) : null;
     const [showAnalytics, setShowAnalytics] = React.useState(false);
+
+    // Calculate average rating and total review count
+    // Note: For accurate counts, we'd need to fetch all reviews or get summary from backend
+    // For now, we'll use the first review as preview and calculate from available data
+    const firstReview = reviews[0];
+    const averageRating = reviews.length > 0
+        ? reviews.reduce((sum, review) => sum + (review?.rating || 0), 0) / reviews.length
+        : 0;
+    const reviewCount = reviews.length; // This is limited to 1, but we show it as a preview
 
     const handleBackPress = () => {
         router.back();
@@ -236,7 +254,7 @@ export default function ProductDetailScreen() {
                     )}
 
                     {/* Tags */}
-                    {product.tags.length > 0 && (
+                    {product.tags && product.tags.length > 0 && (
                         <View style={styles.tagsContainer}>
                             <ThemedText style={[styles.sectionLabel, { color: iconColor }]}>Tags:</ThemedText>
                             <View style={styles.tagsRow}>
@@ -250,7 +268,7 @@ export default function ProductDetailScreen() {
                     )}
 
                     {/* Colors */}
-                    {product.colors.length > 0 && (
+                    {product.colors && product.colors.length > 0 && (
                         <View style={styles.colorsContainer}>
                             <ThemedText style={[styles.sectionLabel, { color: iconColor }]}>Colors:</ThemedText>
                             <View style={styles.colorsRow}>
@@ -306,6 +324,121 @@ export default function ProductDetailScreen() {
                     )}
                 </View>
 
+                {/* Reviews Section (only for shop view) */}
+                {!isFromCatalog && (
+                    <View style={styles.reviewsSection}>
+                        <View style={styles.reviewsSectionHeader}>
+                            <ThemedText style={styles.reviewsSectionTitle}>Reviews</ThemedText>
+                            {isLoadingReviews ? (
+                                <ActivityIndicator size="small" color={tintColor} />
+                            ) : (
+                                <View style={styles.reviewsHeaderRight}>
+                                    {averageRating > 0 && (
+                                        <View style={styles.reviewsSummary}>
+                                            <IconSymbol name="star.fill" size={16} color="#FFB800" />
+                                            <ThemedText style={styles.reviewsRating}>
+                                                {averageRating.toFixed(1)}
+                                            </ThemedText>
+                                            {reviewCount > 0 && (
+                                                <ThemedText style={[styles.reviewsCount, { color: iconColor }]}>
+                                                    ({reviewCount})
+                                                </ThemedText>
+                                            )}
+                                        </View>
+                                    )}
+                                    <TouchableOpacity
+                                        onPress={() => {
+                                            router.push({
+                                                pathname: '/reviews',
+                                                params: {
+                                                    itemId: productId || '',
+                                                    itemType: 'product',
+                                                    itemName: product?.name,
+                                                },
+                                            });
+                                        }}
+                                    >
+                                        <ThemedText style={[styles.viewAllReviews, { color: tintColor }]}>View All</ThemedText>
+                                    </TouchableOpacity>
+                                </View>
+                            )}
+                        </View>
+
+                        {/* Quick Review Preview */}
+                        {isLoadingReviews ? (
+                            <View style={[styles.quickReviewCard, { backgroundColor: cardBg, alignItems: 'center', justifyContent: 'center', paddingVertical: 20 }]}>
+                                <ActivityIndicator size="small" color={tintColor} />
+                            </View>
+                        ) : firstReview ? (
+                            <TouchableOpacity
+                                style={[styles.quickReviewCard, { backgroundColor: cardBg }]}
+                                onPress={() => {
+                                    router.push({
+                                        pathname: '/reviews',
+                                        params: {
+                                            itemId: productId || '',
+                                            itemType: 'product',
+                                            itemName: product?.name,
+                                        },
+                                    });
+                                }}
+                                activeOpacity={0.7}
+                            >
+                                <View style={styles.quickReviewHeader}>
+                                    <View style={styles.quickReviewUser}>
+                                        {firstReview.user?.profile_picture_url ? (
+                                            <Image
+                                                source={{ uri: firstReview.user.profile_picture_url }}
+                                                style={styles.userAvatar}
+                                            />
+                                        ) : (
+                                            <View style={[styles.userAvatarPlaceholder, { backgroundColor: iconColor + '20' }]}>
+                                                <IconSymbol name="person.fill" size={16} color={iconColor} />
+                                            </View>
+                                        )}
+                                        <ThemedText style={styles.quickReviewName}>
+                                            {firstReview.user?.first_name && firstReview.user?.last_name
+                                                ? `${firstReview.user.first_name} ${firstReview.user.last_name}`
+                                                : firstReview.user?.first_name
+                                                    ? firstReview.user.first_name
+                                                    : firstReview.user?.email
+                                                        ? firstReview.user.email.split('@')[0]
+                                                        : 'Anonymous'}
+                                        </ThemedText>
+                                        <View style={styles.quickReviewStars}>
+                                            {[1, 2, 3, 4, 5].map((star) => (
+                                                <IconSymbol
+                                                    key={star}
+                                                    name="star.fill"
+                                                    size={12}
+                                                    color={star <= firstReview.rating ? "#FFB800" : iconColor + '50'}
+                                                />
+                                            ))}
+                                        </View>
+                                    </View>
+                                    <ThemedText style={[styles.quickReviewDate, { color: iconColor }]}>
+                                        {firstReview.created_at
+                                            ? new Date(firstReview.created_at).toLocaleDateString('en-US', {
+                                                month: 'short',
+                                                day: 'numeric',
+                                            })
+                                            : ''}
+                                    </ThemedText>
+                                </View>
+                                <ThemedText style={styles.quickReviewText} numberOfLines={2}>
+                                    {firstReview.comment || 'No comment provided.'}
+                                </ThemedText>
+                            </TouchableOpacity>
+                        ) : (
+                            <View style={[styles.quickReviewCard, { backgroundColor: cardBg }]}>
+                                <ThemedText style={[styles.emptyReviewText, { color: iconColor }]}>
+                                    No reviews yet. Be the first to review this product!
+                                </ThemedText>
+                            </View>
+                        )}
+                    </View>
+                )}
+
                 {/* Actions - Different based on navigation source */}
                 {isFromCatalog ? (
                     <View style={styles.actionsContainer}>
@@ -336,6 +469,25 @@ export default function ProductDetailScreen() {
                     </View>
                 ) : (
                     <View style={styles.actionsContainer}>
+                        <TouchableOpacity
+                            style={[styles.actionButton, styles.writeReviewActionButton, { backgroundColor: tintColor }]}
+                            onPress={() => {
+                                router.push({
+                                    pathname: '/reviews/add-review',
+                                    params: {
+                                        itemId: productId || '',
+                                        itemType: 'product',
+                                        itemName: product?.name,
+                                    },
+                                });
+                            }}
+                        >
+                            <IconSymbol name="pencil" size={18} color={isDark ? '#000' : 'white'} />
+                            <ThemedText style={[styles.actionButtonText, { color: isDark ? '#000' : 'white' }]}>
+                                Write a Review
+                            </ThemedText>
+                        </TouchableOpacity>
+
                         <TouchableOpacity
                             style={[styles.actionButton, styles.tryOnButton, { backgroundColor: tintColor }]}
                             onPress={() => {
@@ -648,6 +800,13 @@ const styles = StyleSheet.create({
         shadowRadius: 4,
         elevation: 3,
     },
+    writeReviewActionButton: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+    },
     deleteButton: {
         borderWidth: 2,
         backgroundColor: 'transparent',
@@ -655,6 +814,96 @@ const styles = StyleSheet.create({
     actionButtonText: {
         fontSize: 16,
         fontWeight: '600',
+    },
+    reviewsSection: {
+        marginTop: 24,
+        marginBottom: 24,
+        paddingTop: 20,
+        borderTopWidth: 1,
+        borderTopColor: 'rgba(0,0,0,0.1)',
+    },
+    reviewsSectionHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        marginBottom: 16,
+        marginHorizontal: 16,
+    },
+    reviewsSectionTitle: {
+        fontSize: 20,
+        fontWeight: '600',
+    },
+    reviewsHeaderRight: {
+        alignItems: 'flex-end',
+        gap: 8,
+    },
+    reviewsSummary: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+    },
+    reviewsRating: {
+        fontSize: 16,
+        fontWeight: '600',
+    },
+    reviewsCount: {
+        fontSize: 14,
+    },
+    viewAllReviews: {
+        fontSize: 14,
+        fontWeight: '500',
+    },
+    quickReviewCard: {
+        borderRadius: 12,
+        padding: 16,
+        borderWidth: 1,
+        borderColor: 'rgba(0,0,0,0.08)',
+    },
+    quickReviewHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 12,
+    },
+    quickReviewUser: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        flex: 1,
+    },
+    userAvatar: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        resizeMode: 'cover',
+    },
+    userAvatarPlaceholder: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    quickReviewName: {
+        fontSize: 14,
+        fontWeight: '600',
+    },
+    quickReviewStars: {
+        flexDirection: 'row',
+        gap: 2,
+    },
+    quickReviewDate: {
+        fontSize: 12,
+    },
+    quickReviewText: {
+        fontSize: 14,
+        lineHeight: 20,
+    },
+    emptyReviewText: {
+        fontSize: 13,
+        fontStyle: 'italic',
+        textAlign: 'center',
+        paddingVertical: 8,
     },
 });
 

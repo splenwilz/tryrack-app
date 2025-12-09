@@ -61,6 +61,10 @@ export async function getCatalogProducts(
         params.append('status', options.status);
     }
 
+    if (options?.boutique_id != null) {
+        params.append('boutique_id', String(options.boutique_id));
+    }
+
     if (options?.skip != null) {
         params.append('skip', String(options.skip));
     }
@@ -75,6 +79,7 @@ export async function getCatalogProducts(
     const response = await apiClient<CatalogProductResponse[]>(url, {
         method: "GET",
     });
+    console.log('response', response);
     return response;
 }
 
