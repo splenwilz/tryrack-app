@@ -111,7 +111,7 @@ export function mapLookFromBackendResponse(apiLook: LookResponse): Look {
 
     // Mock boutique data for now, replace with actual boutique fetching later
     const mockBoutique = {
-        id: apiLook.user_id,
+        id: String(apiLook.boutique_id),
         name: 'Boutique Name', // Placeholder
         logo: 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=100&h=100&fit=crop', // Placeholder
     };

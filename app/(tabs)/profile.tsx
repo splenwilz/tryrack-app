@@ -1,4 +1,4 @@
-import { type FC } from 'react';
+import React, { type FC } from 'react';
 import {
     View,
     Text,
@@ -452,120 +452,194 @@ const AchievementsSection: FC<{ colors: ColorScheme }> = ({ colors }) => (
     </View>
 );
 
-const PreferencesSection: FC<{ preferences: Preferences; colors: ColorScheme; accountMode: 'individual' | 'boutique' }> = ({
+const PreferencesSection: FC<{
+    preferences: Preferences;
+    colors: ColorScheme;
+    accountMode: 'individual' | 'boutique';
+    onSwitchToBoutique: () => void;
+}> = ({
     preferences,
     colors,
     accountMode,
+    onSwitchToBoutique,
 }) => (
-    <View style={[styles.section, { backgroundColor: colors.background }]}>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>Preferences</Text>
+        <View style={[styles.section, { backgroundColor: colors.background }]}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Preferences</Text>
 
-        <View style={styles.preferenceItem}>
-            <View style={styles.preferenceInfo}>
-                <Text style={[styles.preferenceTitle, { color: colors.text }]}>Account Mode</Text>
-                <Text style={[styles.preferenceDescription, { color: colors.tabIconDefault }]}>
-                    Switch between Individual and Boutique modes
-                </Text>
+            <View style={styles.preferenceItem}>
+                <View style={styles.preferenceInfo}>
+                    <Text style={[styles.preferenceTitle, { color: colors.text }]}>Account Mode</Text>
+                    <Text style={[styles.preferenceDescription, { color: colors.tabIconDefault }]}>
+                        Switch between Individual and Boutique modes
+                    </Text>
+                </View>
+                <TouchableOpacity
+                    style={[styles.toggleButton, { backgroundColor: colors.tint }]}
+                    onPress={onSwitchToBoutique}
+                >
+                    <Text style={styles.toggleButtonText}>
+                        {accountMode === 'individual' ? 'Individual' : 'Boutique'}
+                    </Text>
+                </TouchableOpacity>
             </View>
-            <TouchableOpacity style={[styles.toggleButton, { backgroundColor: colors.tint }]} onPress={noop}>
-                <Text style={styles.toggleButtonText}>
-                    {accountMode === 'individual' ? 'Individual' : 'Boutique'}
-                </Text>
-            </TouchableOpacity>
-        </View>
 
-        <View style={styles.preferenceItem}>
-            <View style={styles.preferenceInfo}>
-                <Text style={[styles.preferenceTitle, { color: colors.text }]}>Background Processing</Text>
-                <Text style={[styles.preferenceDescription, { color: colors.tabIconDefault }]}>
-                    {preferences.backgroundPreference === 'clean' ? 'Clean background (studio look)' : 'Keep original background'}
-                </Text>
+            <View style={styles.preferenceItem}>
+                <View style={styles.preferenceInfo}>
+                    <Text style={[styles.preferenceTitle, { color: colors.text }]}>Background Processing</Text>
+                    <Text style={[styles.preferenceDescription, { color: colors.tabIconDefault }]}>
+                        {preferences.backgroundPreference === 'clean' ? 'Clean background (studio look)' : 'Keep original background'}
+                    </Text>
+                </View>
+                <TouchableOpacity style={[styles.toggleButton, { backgroundColor: colors.tint }]} onPress={noop}>
+                    <Text style={styles.toggleButtonText}>
+                        {preferences.backgroundPreference === 'clean' ? 'Clean' : 'Original'}
+                    </Text>
+                </TouchableOpacity>
             </View>
-            <TouchableOpacity style={[styles.toggleButton, { backgroundColor: colors.tint }]} onPress={noop}>
-                <Text style={styles.toggleButtonText}>
-                    {preferences.backgroundPreference === 'clean' ? 'Clean' : 'Original'}
-                </Text>
-            </TouchableOpacity>
-        </View>
 
-        <View style={styles.preferenceItem}>
-            <View style={styles.preferenceInfo}>
-                <Text style={[styles.preferenceTitle, { color: colors.text }]}>Notifications</Text>
-                <Text style={[styles.preferenceDescription, { color: colors.tabIconDefault }]}>
-                    Get notified about new recommendations and features
-                </Text>
+            <View style={styles.preferenceItem}>
+                <View style={styles.preferenceInfo}>
+                    <Text style={[styles.preferenceTitle, { color: colors.text }]}>Notifications</Text>
+                    <Text style={[styles.preferenceDescription, { color: colors.tabIconDefault }]}>
+                        Get notified about new recommendations and features
+                    </Text>
+                </View>
+                <Switch
+                    value={preferences.notifications}
+                    onValueChange={noop}
+                    trackColor={{ false: colors.tabIconDefault, true: colors.tint }}
+                    thumbColor="white"
+                />
             </View>
-            <Switch
-                value={preferences.notifications}
-                onValueChange={noop}
-                trackColor={{ false: colors.tabIconDefault, true: colors.tint }}
-                thumbColor="white"
-            />
-        </View>
 
-        <View style={styles.preferenceItem}>
-            <View style={styles.preferenceInfo}>
-                <Text style={[styles.preferenceTitle, { color: colors.text }]}>Favorite Styles</Text>
-                <Text style={[styles.preferenceDescription, { color: colors.tabIconDefault }]}>
-                    {preferences.favoriteStyles.join(', ')}
-                </Text>
+            <View style={styles.preferenceItem}>
+                <View style={styles.preferenceInfo}>
+                    <Text style={[styles.preferenceTitle, { color: colors.text }]}>Favorite Styles</Text>
+                    <Text style={[styles.preferenceDescription, { color: colors.tabIconDefault }]}>
+                        {preferences.favoriteStyles.join(', ')}
+                    </Text>
+                </View>
+                <TouchableOpacity style={styles.editButton} onPress={noop}>
+                    <IconSymbol name="pencil" size={20} color={colors.tint} />
+                </TouchableOpacity>
             </View>
-            <TouchableOpacity style={styles.editButton} onPress={noop}>
-                <IconSymbol name="pencil" size={20} color={colors.tint} />
-            </TouchableOpacity>
         </View>
-    </View>
-);
+    );
 
-const SettingsSection: FC<{ colors: ColorScheme; onSignOut: () => void; isSigningOut: boolean }> = ({
+const SettingsSection: FC<{
+    colors: ColorScheme;
+    onSignOut: () => void;
+    isSigningOut: boolean;
+    onSwitchToBoutique: () => void;
+}> = ({
     colors,
     onSignOut,
-    isSigningOut
+    isSigningOut,
+    onSwitchToBoutique,
 }) => (
-    <View style={[styles.section, { backgroundColor: colors.background }]}>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>Settings</Text>
+        <View style={[styles.section, { backgroundColor: colors.background }]}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Settings</Text>
 
-        <TouchableOpacity style={styles.settingItem} onPress={noop}>
-            <IconSymbol name="person.text.rectangle" size={20} color={colors.tint} />
-            <Text style={[styles.settingText, { color: colors.text }]}>Complete Profile</Text>
-            <IconSymbol name="chevron.right" size={16} color={colors.tabIconDefault} />
-        </TouchableOpacity>
+            <TouchableOpacity
+                style={[styles.settingItem, { borderTopWidth: 0 }]}
+                onPress={() => {
+                    console.log('=== SWITCH TO BOUTIQUE BUTTON PRESSED ===');
+                    Alert.alert('Debug', `Handler exists: ${!!onSwitchToBoutique}`);
+                    if (onSwitchToBoutique) {
+                        console.log('Calling onSwitchToBoutique...');
+                        onSwitchToBoutique();
+                    } else {
+                        console.error('onSwitchToBoutique is undefined!');
+                        Alert.alert('Error', 'Handler not found');
+                    }
+                }}
+                activeOpacity={0.7}
+            >
+                <IconSymbol name="building.2.fill" size={20} color={colors.tint} />
+                <Text style={[styles.settingText, { color: colors.text }]}>Switch to Boutique Mode</Text>
+                <IconSymbol name="chevron.right" size={16} color={colors.tabIconDefault} />
+            </TouchableOpacity>
 
-        <TouchableOpacity style={styles.settingItem} onPress={noop}>
-            <IconSymbol name="lock" size={20} color={colors.tint} />
-            <Text style={[styles.settingText, { color: colors.text }]}>Privacy & Security</Text>
-            <IconSymbol name="chevron.right" size={16} color={colors.tabIconDefault} />
-        </TouchableOpacity>
+            <TouchableOpacity
+                style={styles.settingItem}
+                onPress={() => {
+                    console.log('Complete Profile button pressed - TEST');
+                    Alert.alert('Test', 'Complete Profile button works!');
+                }}
+            >
+                <IconSymbol name="person.text.rectangle" size={20} color={colors.tint} />
+                <Text style={[styles.settingText, { color: colors.text }]}>Complete Profile</Text>
+                <IconSymbol name="chevron.right" size={16} color={colors.tabIconDefault} />
+            </TouchableOpacity>
 
-        <TouchableOpacity style={styles.settingItem} onPress={noop}>
-            <IconSymbol name="questionmark.circle" size={20} color={colors.tint} />
-            <Text style={[styles.settingText, { color: colors.text }]}>Help & Support</Text>
-            <IconSymbol name="chevron.right" size={16} color={colors.tabIconDefault} />
-        </TouchableOpacity>
+            <TouchableOpacity style={styles.settingItem} onPress={noop}>
+                <IconSymbol name="lock" size={20} color={colors.tint} />
+                <Text style={[styles.settingText, { color: colors.text }]}>Privacy & Security</Text>
+                <IconSymbol name="chevron.right" size={16} color={colors.tabIconDefault} />
+            </TouchableOpacity>
 
-        <TouchableOpacity style={styles.settingItem} onPress={noop}>
-            <IconSymbol name="info.circle" size={20} color={colors.tint} />
-            <Text style={[styles.settingText, { color: colors.text }]}>About TryRack</Text>
-            <IconSymbol name="chevron.right" size={16} color={colors.tabIconDefault} />
-        </TouchableOpacity>
+            <TouchableOpacity style={styles.settingItem} onPress={noop}>
+                <IconSymbol name="questionmark.circle" size={20} color={colors.tint} />
+                <Text style={[styles.settingText, { color: colors.text }]}>Help & Support</Text>
+                <IconSymbol name="chevron.right" size={16} color={colors.tabIconDefault} />
+            </TouchableOpacity>
 
-        <TouchableOpacity
-            style={[
-                styles.logoutButton,
-                { backgroundColor: '#FF3B30' },
-                isSigningOut && styles.logoutButtonDisabled
-            ]}
-            onPress={onSignOut}
-            disabled={isSigningOut}
-        >
-            <IconSymbol name="rectangle.portrait.and.arrow.right" size={20} color="white" />
-            <Text style={styles.logoutText}>{isSigningOut ? 'Signing Out...' : 'Sign Out'}</Text>
-        </TouchableOpacity>
-    </View>
-);
+            <TouchableOpacity style={styles.settingItem} onPress={noop}>
+                <IconSymbol name="info.circle" size={20} color={colors.tint} />
+                <Text style={[styles.settingText, { color: colors.text }]}>About TryRack</Text>
+                <IconSymbol name="chevron.right" size={16} color={colors.tabIconDefault} />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+                style={[
+                    styles.logoutButton,
+                    { backgroundColor: '#FF3B30' },
+                    isSigningOut && styles.logoutButtonDisabled
+                ]}
+                onPress={onSignOut}
+                disabled={isSigningOut}
+            >
+                <IconSymbol name="rectangle.portrait.and.arrow.right" size={20} color="white" />
+                <Text style={styles.logoutText}>{isSigningOut ? 'Signing Out...' : 'Sign Out'}</Text>
+            </TouchableOpacity>
+        </View>
+    );
 
 export default function ProfileScreen() {
     const { mutateAsync: signoutMutation, isPending: isSigningOut } = useSignout();
+
+    const handleSwitchToBoutique = () => {
+        console.log('handleSwitchToBoutique called');
+
+        // Use setTimeout to ensure Alert is shown after current execution context
+        setTimeout(() => {
+            Alert.alert(
+                'Switch to Boutique Mode',
+                'Switch to boutique mode? You can always switch back in settings.',
+                [
+                    {
+                        text: 'Cancel',
+                        style: 'cancel',
+                        onPress: () => console.log('Cancelled mode switch')
+                    },
+                    {
+                        text: 'Switch',
+                        onPress: async () => {
+                            console.log('Switching to boutique mode...');
+                            try {
+                                // await setUserType('boutique');
+                                console.log('User type set, navigating...');
+                                router.replace('/(boutique_tabs)/dashboard');
+                            } catch (error) {
+                                console.error('Error switching mode:', error);
+                                Alert.alert('Error', 'Failed to switch mode. Please try again.');
+                            }
+                        },
+                    },
+                ]
+            );
+        }, 100);
+    };
 
     const handleSignOut = async () => {
         Alert.alert(
@@ -605,11 +679,17 @@ export default function ProfileScreen() {
                 <FashionStatsSection colors={themeColors} stats={MOCK_FASHION_STATS} />
                 <OutfitHistorySection colors={themeColors} />
                 <AchievementsSection colors={themeColors} />
-                <PreferencesSection preferences={MOCK_PREFERENCES} colors={themeColors} accountMode="individual" />
+                <PreferencesSection
+                    preferences={MOCK_PREFERENCES}
+                    colors={themeColors}
+                    accountMode="individual"
+                    onSwitchToBoutique={handleSwitchToBoutique}
+                />
                 <SettingsSection
                     colors={themeColors}
                     onSignOut={handleSignOut}
                     isSigningOut={isSigningOut}
+                    onSwitchToBoutique={handleSwitchToBoutique}
                 />
             </ScrollView>
         </SafeAreaView>

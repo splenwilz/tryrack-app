@@ -38,6 +38,7 @@ import { useCatalogProducts } from '@/api/catalog/queries';
 import { useCatalogProductForm } from '@/hooks/boutique/useCatalogProductForm';
 import { useCatalogProductMutations } from '@/hooks/boutique/useCatalogProductMutations';
 import { useBoutiqueLooks, useCreateLook, useUpdateLook } from '@/api/looks/queries';
+import { useGetBoutiqueProfile } from '@/api/boutique-profile/queries';
 import { mapFromBackendResponse } from '@/utils/catalog';
 import { uploadImage } from '@/api/upload/services';
 import type { CatalogProduct } from '@/types/boutique';
@@ -69,11 +70,15 @@ export default function BoutiqueProductsScreen() {
         tag: null,
     });
 
+    // Get current user's boutique profile to filter products
+    const { data: boutiqueProfile } = useGetBoutiqueProfile();
+
     // Fetch products from API
     const { data: apiProducts = [], refetch: refetchProducts, isRefetching: isRefetchingProducts } = useCatalogProducts({
         category: filters.category || null,
         brand: filters.brand || null,
         status: filters.status !== 'all' ? filters.status : null,
+        boutique_id: boutiqueProfile?.boutique_id || null, // Filter by current user's boutique
     });
 
     // Fetch looks from API

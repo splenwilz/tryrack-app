@@ -52,8 +52,8 @@ export function mapFromBackendResponse(response: CatalogProductResponse): Catalo
         imageUrl: response.image_url,
         stock: response.stock,
         status: response.status,
-        tags: response.tags,
-        colors: response.colors,
+        tags: response.tags || [], // Default to empty array if null/undefined
+        colors: response.colors || [], // Default to empty array if null/undefined
         description: response.description,
         createdAt: response.created_at,
         lastUpdated: response.updated_at,

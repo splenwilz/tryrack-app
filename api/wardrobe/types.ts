@@ -98,7 +98,7 @@ export interface SaveVirtualTryOnRequest {
         // Boutique item fields (optional)
         item_type?: 'wardrobe' | 'boutique';
         product_id?: string; // Catalog product ID for boutique items
-        boutique_id?: string; // Boutique owner user ID
+        boutique_id?: string | number; // Boutique ID (integer from backend, but stored as string in frontend for consistency)
         boutique_name?: string; // Boutique name for display
         boutique_logo_url?: string; // Boutique logo URL (optional)
     }[];
@@ -131,7 +131,7 @@ export interface VirtualTryOnHistoryItem {
         // Boutique item fields (optional, returned from backend)
         item_type?: 'wardrobe' | 'boutique';
         product_id?: string; // Catalog product ID for boutique items
-        boutique_id?: string; // Boutique owner user ID
+        boutique_id?: string | number; // Boutique ID (integer from backend, but stored as string in frontend for consistency)
         boutique_name?: string; // Boutique name for display
         boutique_logo_url?: string; // Boutique logo URL (optional)
     }[];
